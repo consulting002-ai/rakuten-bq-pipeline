@@ -25,9 +25,12 @@ def get_secret(secret_id: str, project_id: Optional[str] = None, version: str = 
         Exception: Secret Manager API呼び出しエラー
     """
     if not project_id:
-        project_id = os.getenv("PROJECT_ID")
-        if not project_id:
-            raise ValueError("PROJECT_IDが環境変数に設定されていません。")
+    # 1) 環境変数 2) ADC から自動取得 の順で解決
+    project_id = os.getenv("PROJECT_ID")
+    if not project_id:
+        _, project_id = google.auth.default()
+    if not project_id:
+        raise ValueError("PROJECT_IDが解決できません（環境変数またはADCが必要）。")
     
     try:
         client = secretmanager.SecretManagerServiceClient()
