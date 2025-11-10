@@ -1,0 +1,17 @@
+# Google Cloud clients
+google-cloud-storage>=2.14.0
+google-cloud-bigquery>=3.17.2
+google-cloud-secret-manager>=2.20.2
+google-cloud-logging>=3.10.0
+google-cloud-tasks>=2.16.0
+
+# HTTP
+requests>=2.32.3
+
+# Data
+pandas>=2.2.2
+pyarrow>=16.1.0
+python-dateutil>=2.9.0.post0
+
+# Local dev / emulator for Cloud Functions
+functions-framework>=3.6.0
