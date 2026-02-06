@@ -1,0 +1,19 @@
+{
+    "orderNumberList": [
+        "###_ORDER_NUMBER_SEPARATE_###-00000001",
+        "###_ORDER_NUMBER_SEPARATE_###-00000002",
+        "###_ORDER_NUMBER_SEPARATE_###-00000003"
+    ],
+    "MessageModelList": [
+        {
+            "messageType": "INFO",
+            "messageCode": "ORDER_EXT_API_SEARCH_ORDER_INFO_101",
+            "message": "注文検索に成功しました。"
+        }
+    ],
+    "PaginationResponseModel": {
+        "totalRecordsAmount": 3,
+        "totalPages": 1,
+        "requestPage": 1
+    }
+}

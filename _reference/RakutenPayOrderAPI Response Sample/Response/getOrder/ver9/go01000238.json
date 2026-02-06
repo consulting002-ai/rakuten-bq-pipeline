@@ -1,0 +1,183 @@
+{
+    "version": 9,
+    "MessageModelList": [
+        {
+            "messageType": "INFO",
+            "messageCode": "ORDER_EXT_API_GET_ORDER_INFO_101",
+            "message": "受注情報取得に成功しました。(取得件数1件)"
+        }
+    ],
+    "OrderModelList": [
+        {
+            "orderNumber": "###_ORDER_NUMBER_###",
+            "orderProgress": 100,
+            "subStatusId": null,
+            "subStatusName": null,
+            "orderDatetime": "2024-06-24T13:40:33+0900",
+            "shopOrderCfmDatetime": null,
+            "orderFixDatetime": null,
+            "shippingInstDatetime": null,
+            "shippingCmplRptDatetime": null,
+            "cancelDueDate": "2024-07-08",
+            "deliveryDate": "2024-06-25",
+            "shippingTerm": null,
+            "remarks": "[配送日時指定:]\n2024-06-25(火)\n\n\n",
+            "giftCheckFlag": 0,
+            "severalSenderFlag": 0,
+            "equalSenderFlag": 1,
+            "isolatedIslandFlag": 0,
+            "rakutenMemberFlag": 1,
+            "carrierCode": 0,
+            "emailCarrierCode": 0,
+            "orderType": 1,
+            "reserveNumber": null,
+            "reserveDeliveryCount": null,
+            "cautionDisplayType": 0,
+            "cautionDisplayDetailType" : null,
+            "rakutenConfirmFlag": 0,
+            "goodsPrice": 1500,
+            "postagePrice": 500,
+            "deliveryPrice": 0,
+            "paymentCharge": 0,
+            "paymentChargeTaxRate": 0.1,
+            "totalPrice": 2150,
+            "requestPrice": 0,
+            "couponAllTotalPrice": 0,
+            "couponShopPrice": 0,
+            "couponOtherPrice": 0,
+            "additionalFeeOccurAmountToUser": 0,
+            "additionalFeeOccurAmountToShop": 0,
+            "asurakuFlag": 0,
+            "drugFlag": 0,
+            "dealFlag": 0,
+            "deliveryCertPrgFlag": 1,
+            "oneDayOperationFlag": 1,
+            "membershipType": 0,
+            "memo": null,
+            "operator": null,
+            "mailPlugSentence": null,
+            "modifyFlag": 0,
+            "receiptIssueCount": 0,
+            "receiptIssueHistoryList": [],
+            "OrdererModel": {
+                "zipCode1": "158",
+                "zipCode2": "0094",
+                "prefecture": "東京都",
+                "city": "世田谷区",
+                "subAddress": "玉川１丁目１４−１ 楽天クリムゾンハウス",
+                "familyName": "楽天",
+                "firstName": "太郎",
+                "familyNameKana": "ラクテン",
+                "firstNameKana": "タロウ",
+                "phoneNumber1": "03",
+                "phoneNumber2": "1234",
+                "phoneNumber3": "5678",
+                "emailAddress": "c12719498f0b6846e7b620692e2a0b63s9@pc.fw.rakuten.ne.jp",
+                "sex": "男",
+                "birthYear": 1987,
+                "birthMonth": 4,
+                "birthDay": 29
+            },
+            "SettlementModel": {
+                "settlementMethodCode": 1,
+                "settlementMethod": "クレジットカード",
+                "rpaySettlementFlag": 1,
+                "cardName": "MASTER",
+                "cardNumber": "XXXX-XXXX-XXXX-0134",
+                "cardOwner": "TARO RAKUTEN",
+                "cardYm": "2033-11",
+                "cardPayType": 0,
+                "cardInstallmentDesc": null
+            },
+            "DeliveryModel": {
+                "deliveryName": "宅配便",
+                "deliveryClass": null
+            },
+            "PointModel": {
+                "usedPoint": 2150
+            },
+            "WrappingModel1": null,
+            "WrappingModel2": null,
+            "PackageModelList": [
+                {
+                    "basketId": 2668396,
+                    "postagePrice": 500,
+                    "postageTaxRate": 0.1,
+                    "deliveryPrice": 0,
+                    "deliveryTaxRate": 0.1,
+                    "goodsPrice": 1500,
+                    "totalPrice": 2150,
+                    "noshi": null,
+                    "defaultDeliveryCompanyCode": "1001",
+                    "dropOffFlag": 0,
+                    "dropOffLocation": null,
+                    "packageDeleteFlag": 0,
+                    "SenderModel": {
+                        "zipCode1": "158",
+                        "zipCode2": "0094",
+                        "prefecture": "東京都",
+                        "city": "世田谷区",
+                        "subAddress": "玉川１丁目１４−１ 楽天クリムゾンハウス",
+                        "familyName": "楽天",
+                        "firstName": "太郎",
+                        "familyNameKana": "ラクテン",
+                        "firstNameKana": "タロウ",
+                        "phoneNumber1": "03",
+                        "phoneNumber2": "1234",
+                        "phoneNumber3": "5678",
+                        "isolatedIslandFlag": 0
+                    },
+                    "ItemModelList": [
+                        {
+                            "itemDetailId": 2668396,
+                            "itemName": "サンプル商品１",
+                            "itemId": 10000060,
+                            "itemNumber": "10000037",
+                            "manageNumber": "22080313",
+                            "price": 1500,
+                            "units": 1,
+                            "includePostageFlag": 0,
+                            "includeTaxFlag": 0,
+                            "includeCashOnDeliveryPostageFlag": 0,
+                            "selectedChoice": null,
+                            "pointRate": 1,
+                            "pointType": 0,
+                            "inventoryType": 1,
+                            "delvdateInfo": null,
+                            "restoreInventoryFlag": 0,
+                            "dealFlag": 0,
+                            "drugFlag": 0,
+                            "deleteItemFlag": 0,
+                            "taxRate": 0.1,
+                            "priceTaxIncl": 1650,
+                            "isSingleItemShipping": 0,
+                            "SkuModelList": [
+                                {
+                                    "variantId": "22080313",
+                                    "merchantDefinedSkuId": null,
+                                    "skuInfo": null
+                                }
+                            ]
+                        }
+                    ],
+                    "ShippingModelList": [],
+                    "DeliveryCvsModel": null
+                }
+            ],
+            "CouponModelList": null,
+            "ChangeReasonModelList": [],
+            "TaxSummaryModelList": [
+                {
+                    "taxRate": 0.1,
+                    "reqPrice": 2150,
+                    "reqPriceTax": 195,
+                    "totalPrice": 2150,
+                    "paymentCharge": 0,
+                    "couponPrice": 0,
+                    "point": 0
+                }
+            ],
+            "DueDateModelList": []
+        }
+    ]
+}

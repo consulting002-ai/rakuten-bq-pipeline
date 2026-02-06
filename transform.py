@@ -51,6 +51,10 @@ def normalize_orders(getorder_json: Dict[str, Any], inserted_at: Optional[str] =
         point      = o.get("PointModel", {})
         orderer    = o.get("OrdererModel", {})
 
+        zip1 = orderer.get("zipCode1")
+        zip2 = orderer.get("zipCode2")
+        zip_code = f"{zip1}-{zip2}" if zip1 and zip2 else None
+
         row = {
             "order_number": order_number,
             "order_datetime": _ts(o.get("orderDatetime")),
@@ -70,7 +74,7 @@ def normalize_orders(getorder_json: Dict[str, Any], inserted_at: Optional[str] =
             "user_email": orderer.get("emailAddress"),
             "prefecture": orderer.get("prefecture"),
             "city": orderer.get("city"),
-            "zip_code": orderer.get("zipCode"),
+            "zip_code": zip_code,
             "order_update_datetime": _ts(o.get("orderUpdateDatetime")),
             "inserted_at": pd.to_datetime(inserted_at, utc=True),
         }
@@ -108,19 +112,29 @@ def normalize_order_items(getorder_json: Dict[str, Any], inserted_at: Optional[s
         packages: List[Dict[str, Any]] = o.get("PackageModelList", []) or []
 
         for pkg in packages:
-            basket_id = pkg.get("basketId")
+            basket_raw = pkg.get("basketId")
+            basket_id = str(basket_raw) if basket_raw is not None else None
             delivery_company = pkg.get("defaultDeliveryCompanyCode")
-            delivery_status = pkg.get("deliveryStatus")
 
             items: List[Dict[str, Any]] = pkg.get("ItemModelList", []) or []
             for it in items:
                 # 必須に近いキー
-                item_id = it.get("itemId")
+                item_raw = it.get("itemId")
+                item_id = str(item_raw) if item_raw is not None else None
                 if STRICT_VALIDATE and item_id is None:
                     raise ValueError(f"itemId missing in order {order_number}")
 
                 units = _i(it.get("units"))
                 price_tax_incl = _f(it.get("priceTaxIncl"))
+
+                # SKU 情報: SkuModelList は通常 1 要素。複数あっても先頭だけ拾う。
+                sku_models: List[Dict[str, Any]] = it.get("SkuModelList", []) or []
+                variant_id = None
+                sku_info = None
+                if sku_models:
+                    sku_first = sku_models[0] or {}
+                    variant_id = sku_first.get("variantId")
+                    sku_info = sku_first.get("skuInfo")
 
                 # subtotal は「税込単価×数量」で素直に算出（フィールドがあるならそれを使ってもOK）
                 subtotal = _f(it.get("subtotal"))
@@ -133,25 +147,23 @@ def normalize_order_items(getorder_json: Dict[str, Any], inserted_at: Optional[s
                     "item_id": item_id,
                     "item_name": it.get("itemName"),
                     "manage_number": it.get("manageNumber"),
-                    "genre": it.get("genre"),
+                    "variant_id": variant_id,
+                    "sku_info": sku_info,
                     "price": _f(it.get("price")),                 # 税抜
                     "price_tax_incl": price_tax_incl,             # 税込
                     "quantity": units,
                     "subtotal": subtotal,
                     "tax_rate": _f(it.get("taxRate")),
-                    "discount_price": _f(it.get("discountPrice")),
-                    "point_given": _f(it.get("pointGiven")),
                     "delivery_company": delivery_company,
-                    "delivery_status": delivery_status,
                     "inserted_at": pd.to_datetime(inserted_at, utc=True),
                 })
 
     return pd.DataFrame(
         rows,
         columns=[
-            "order_number","basket_id","item_id","item_name","manage_number","genre",
+            "order_number","basket_id","item_id","item_name","manage_number","variant_id","sku_info",
             "price","price_tax_incl","quantity","subtotal","tax_rate",
-            "discount_price","point_given","delivery_company","delivery_status","inserted_at",
+            "delivery_company","inserted_at",
         ],
     )
 

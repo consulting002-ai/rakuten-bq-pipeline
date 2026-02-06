@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets and credentials
+*.key
+*.pem
+*.p12
+.env
+.env.local
+temp_service_secret*.txt
+temp_license_key*.txt
+
+# Google Cloud
+.gcloudignore
+service-account*.json
+
+# Logs
+*.log
+
+# Test files
+test_*.py
+*_test.py
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local data files
+*.csv
+!manage_variant_skuinfo.csv
+*.xlsx
+*.xls
+
+# Backup files
+*.bak
+*.backup

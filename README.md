@@ -1,5 +1,7 @@
 # Rakuten BigQuery Pipeline
 
+- 商品マスタ（スプレッドシート）連携: [PRODUCT_MASTER.md](./PRODUCT_MASTER.md)
+
 楽天RMS APIから注文データを取得し、Cloud StorageにRaw JSONとして保存、BigQueryに正規化して取り込むETLパイプラインです。
 
 ## 概要
@@ -125,14 +127,27 @@ gcloud functions deploy rakuten-etl \
   --entry-point=main \
   --trigger-http \
   --allow-unauthenticated \
-  --set-env-vars="PROJECT_ID=your-project-id,BUCKET_NAME=your-bucket-name" \
+  --memory=2GiB \
   --timeout=540s \
-  --memory=512MB
+  --set-env-vars="PROJECT_ID=smarttanpaku-ltv-dev,BUCKET_NAME=smarttanpaku-ltv-dev-raw-jsons"
 ```
 
 ## 使用方法
 
-### 実行モード
+### エンドポイント一覧
+
+このシステムには2つのエンドポイントがあります：
+
+| エンドポイント | 用途 | 説明 |
+|--------------|------|------|
+| `/` | 月次更新 | 注文データの取得・更新、LTV計算 |
+| `/sync-product-master` | 商品マスタ同期 | 商品名の更新をLTVテーブルに即座に反映 |
+
+### 検索条件の前提
+- `searchOrder` の期間検索種別 `dateType` は固定で `1`（注文日時）を使用します。
+- `startDatetime` / `endDatetime` は RMS 仕様に従い `YYYY-MM-DDTHH:MM:SS+0900` 形式（オフセットにコロンなし）で送信します。
+
+### 実行モード（メインエンドポイント `/`）
 
 Cloud Functionは以下の3つのモードをサポートしています：
 
@@ -159,6 +174,7 @@ curl "https://YOUR-FUNCTION-URL?mode=CUSTOM&start=2024-01-01&end=2024-01-31"
 ```bash
 curl "https://YOUR-FUNCTION-URL?mode=HISTORICAL"
 ```
+※ URL はデプロイした関数のエンドポイントに置き換えてください。例: `https://asia-northeast1-smarttanpaku-ltv-dev.cloudfunctions.net/rakuten-etl?mode=HISTORICAL`
 
 ⚠️ **注意**: HISTORICALモードは大量データ処理には非推奨です。Cloud Functionsのタイムアウト（最大540秒）のリスクがあります。大量データの取り込みには、Cloud Tasks + CUSTOMモードの使用を推奨します。
 
@@ -171,6 +187,29 @@ curl "https://YOUR-FUNCTION-URL?mode=HISTORICAL"
 ```bash
 curl "https://YOUR-FUNCTION-URL?mode=CUSTOM&start=2024-01-01&end=2024-01-31&dry_run=1"
 ```
+
+### 商品マスタの同期（`/sync-product-master` エンドポイント）
+
+Googleスプレッドシートで商品名を変更した後、LTVテーブルに即座に反映させる：
+
+```bash
+# PowerShell
+$FUNCTION_URL = "https://YOUR-FUNCTION-URL"
+Invoke-WebRequest -Uri "$FUNCTION_URL/sync-product-master" -Method Post
+
+# Bash / curl
+curl -X POST "https://YOUR-FUNCTION-URL/sync-product-master"
+```
+
+**処理内容**：
+1. `product_master_raw` を最新に更新
+2. `entry_product_ltv_by_month_offset` の商品名を更新
+
+**注意**：
+- `user_first_purchase_info` は次回の月次更新時に自動的に同期されます
+- 月次更新（午前2時）と同時実行は避けてください
+
+詳細は [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) の「商品マスタの更新」セクションを参照してください。
 
 ### 過去データの一括取り込み
 
@@ -234,6 +273,10 @@ rakuten-bq-pipeline/
 - `searchOrder`: 指定期間の注文番号リストを取得
 - `getOrder`: 注文番号から注文詳細を取得
 
+#### getOrder ? version ??????
+
+RakutenPayOrderAPI ??????? ( `RakutenPayOrderAPI Response Sample/Request/getOrder/ver9/*.json` ) ?????getOrder ???????? `version` ??????????????????????????? `9` ????????????????????? `ORDER_EXT_API_GET_ORDER_ERROR_009` ????OrderModelList ????????????????
+
 ### 2. Raw保存
 
 `storage_client.py`が取得したデータをCloud Storageに保存：
@@ -261,13 +304,22 @@ rakuten-bq-pipeline/
 | `order_number` | STRING | 注文番号 |
 | `order_datetime` | TIMESTAMP | 注文日時 |
 | `order_status` | STRING | 注文ステータス |
+| `cancel_due_date` | DATE | キャンセル期限日 |
 | `total_price` | FLOAT | 合計金額 |
 | `goods_price` | FLOAT | 商品金額 |
 | `postage_price` | FLOAT | 送料 |
+| `payment_fee` | FLOAT | 決済手数料 |
+| `used_point` | FLOAT | 使用ポイント |
 | `payment_method` | STRING | 支払い方法 |
+| `card_name` | STRING | カード名 |
 | `delivery_name` | STRING | 配送方法名 |
+| `delivery_date` | DATE | 配送希望日 |
+| `rakuten_member_flag` | BOOL | 楽天会員フラグ |
 | `user_email` | STRING | ユーザーEmail |
 | `prefecture` | STRING | 都道府県 |
+| `city` | STRING | 市区町村 |
+| `zip_code` | STRING | 郵便番号 |
+| `order_update_datetime` | TIMESTAMP | 注文更新日時 |
 | `inserted_at` | TIMESTAMP | 取り込み日時 |
 
 ### order_items テーブル
@@ -278,11 +330,15 @@ rakuten-bq-pipeline/
 | `basket_id` | STRING | バスケットID |
 | `item_id` | STRING | 商品ID |
 | `item_name` | STRING | 商品名 |
+| `manage_number` | STRING | 商品管理番号 |
+| `variant_id` | STRING | SKU管理番号（NULL可） |
+| `sku_info` | STRING | SKU表示名（NULL可） |
 | `price` | FLOAT | 単価（税抜） |
 | `price_tax_incl` | FLOAT | 単価（税込） |
 | `quantity` | INTEGER | 数量 |
 | `subtotal` | FLOAT | 小計 |
 | `tax_rate` | FLOAT | 税率 |
+| `delivery_company` | STRING | 配送会社コード |
 | `inserted_at` | TIMESTAMP | 取り込み日時 |
 
 ## トラブルシューティング
@@ -362,4 +418,3 @@ curl "http://localhost:8080?mode=CUSTOM&start=2024-01-01&end=2024-01-31&dry_run=
 - [RakutenPayOrderAPI ドキュメント](https://webservice.rms.rakuten.co.jp/merchant-portal/view/ja/common/1-1_service_index/rakutenpayorderapi/)
 - [Google Cloud Functions ドキュメント](https://cloud.google.com/functions/docs)
 - [BigQuery ドキュメント](https://cloud.google.com/bigquery/docs)
-

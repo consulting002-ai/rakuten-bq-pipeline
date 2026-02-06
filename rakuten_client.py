@@ -18,25 +18,33 @@ try:
     SERVICE_SECRET, LICENSE_KEY = get_rakuten_credentials()
 except Exception as e:
     # Secret Manager取得に失敗した場合は環境変数から取得（後方互換性）
-    logging.warning(f"Secret Managerからの認証情報取得に失敗しました。環境変数から取得します: {e}")
+    logging.warning(
+        f"Secret Managerからの認証情報取得に失敗しました。環境変数から取得します: {e}"
+    )
     SERVICE_SECRET = os.getenv("RAKUTEN_SERVICE_SECRET")
     LICENSE_KEY = os.getenv("RAKUTEN_LICENSE_KEY")
+
+# ここで正規化（クレンジング）
+SERVICE_SECRET = (SERVICE_SECRET or "").strip()
+LICENSE_KEY = (LICENSE_KEY or "").strip()
 
 # 取得制限
 MAX_RETRIES = 5
 PAGE_SIZE = 100  # searchOrder/getOrder の1ページ最大件数
+
 
 # ------------------------------
 # 認証ヘッダー生成
 # ------------------------------
 def build_auth_header():
     """ESA認証ヘッダーを生成"""
-    auth_str = f"{SERVICE_SECRET}:{LICENSE_KEY}"
+    auth_str = f"{SERVICE_SECRET.strip()}:{LICENSE_KEY.strip()}"
     encoded = base64.b64encode(auth_str.encode()).decode()
     return {
         "Authorization": f"ESA {encoded}",
-        "Content-Type": "application/json; charset=utf-8"
+        "Content-Type": "application/json; charset=utf-8",
     }
+
 
 # ------------------------------
 # APIコールの共通関数
@@ -52,53 +60,65 @@ def call_api(endpoint, payload):
             if resp.status_code == 200:
                 return resp.json()
             elif resp.status_code in [429, 500, 503]:
-                wait = 2 ** attempt
-                logging.warning(f"Retry {attempt+1}/{MAX_RETRIES} after {wait}s (status={resp.status_code})")
+                wait = 2**attempt
+                logging.warning(
+                    f"Retry {attempt+1}/{MAX_RETRIES} after {wait}s (status={resp.status_code})"
+                )
                 time.sleep(wait)
             else:
                 logging.error(f"API Error {resp.status_code}: {resp.text}")
                 break
         except Exception as e:
             logging.error(f"Request failed: {e}")
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
     return None
+
 
 # ------------------------------
 # searchOrder
 # ------------------------------
 def search_order(start_datetime, end_datetime):
-    """
-    指定期間の注文番号リストを取得
-    """
+    """???????????????"""
     logging.info(f"Fetching order numbers: {start_datetime} - {end_datetime}")
     all_orders = []
     page = 1
 
     while True:
         payload = {
-            "dateType": 1,  # 注文日基準
+            "dateType": 1,
             "startDatetime": start_datetime,
             "endDatetime": end_datetime,
-            "paginationRequest": {
+            "PaginationRequestModel": {
                 "requestRecordsAmount": PAGE_SIZE,
-                "requestPage": page
-            }
+                "requestPage": page,
+            },
         }
         data = call_api("searchOrder/", payload)
         if not data:
             break
 
-        order_list = data.get("orderNumberList", [])
+        order_list = data.get("orderNumberList", []) or []
         all_orders.extend(order_list)
         logging.info(f"Page {page}: {len(order_list)} orders fetched")
 
-        # ページが満了したら終了
+        pagination = data.get("PaginationResponseModel") or {}
+        current_page = pagination.get("requestPage") or page
+        total_pages = pagination.get("totalPages")
+
+        if total_pages is not None:
+            if current_page >= total_pages:
+                break
+            page = current_page + 1
+            continue
+
         if len(order_list) < PAGE_SIZE:
             break
         page += 1
 
     logging.info(f"Total order numbers: {len(all_orders)}")
     return all_orders
+
+
 
 # ------------------------------
 # getOrder
@@ -110,9 +130,11 @@ def get_order(order_numbers):
     """
     all_results = []
     for i in range(0, len(order_numbers), PAGE_SIZE):
-        batch = order_numbers[i:i + PAGE_SIZE]
-        payload = {"orderNumberList": batch}
-        logging.info(f"Fetching details for {len(batch)} orders (batch {i//PAGE_SIZE+1})")
+        batch = order_numbers[i : i + PAGE_SIZE]
+        payload = {"orderNumberList": batch, "version": 9}
+        logging.info(
+            f"Fetching details for {len(batch)} orders (batch {i//PAGE_SIZE+1})"
+        )
 
         data = call_api("getOrder/", payload)
         if not data:

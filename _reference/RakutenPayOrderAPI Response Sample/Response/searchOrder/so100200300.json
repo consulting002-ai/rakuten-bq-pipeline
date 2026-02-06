@@ -1,0 +1,16 @@
+{
+    "orderNumberList": null,
+    "MessageModelList": [
+        {
+            "messageType": "ERROR",
+            "messageCode": "ORDER_EXT_API_SEARCH_ORDER_ERROR_009",
+            "message": "dateTypeの項目を指定して下さい。"
+        },
+        {
+            "messageType": "ERROR",
+            "messageCode": "ORDER_EXT_API_SEARCH_ORDER_ERROR_011",
+            "message": "startDatetimeの書式が不正です。"
+        }
+    ],
+    "PaginationResponseModel": null
+}

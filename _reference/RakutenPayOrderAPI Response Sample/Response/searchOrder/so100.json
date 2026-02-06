@@ -1,0 +1,15 @@
+{
+    "orderNumberList": [],
+    "MessageModelList": [
+        {
+            "messageType": "INFO",
+            "messageCode": "ORDER_EXT_API_SEARCH_ORDER_INFO_102",
+            "message": "注文検索に成功しました。(検索結果０件)"
+        }
+    ],
+    "PaginationResponseModel": {
+        "totalRecordsAmount": null,
+        "totalPages": null,
+        "requestPage": null
+    }
+}

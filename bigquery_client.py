@@ -55,12 +55,10 @@ def insert_dataframe(
     job_config = bigquery.LoadJobConfig(
         write_disposition=write_disposition,
     )
-    # PyPI: pyarrow が必要（requirements.txt に `pyarrow` を追加）
+    # PyAPI: pyarrow が必要（requirements.txt に `pyarrow` を追加）
     job = client.load_table_from_dataframe(
-        df, destination=table_ref, job_config=job_config, job_id_prefix="df_load_", project=table_ref.project
+        df, destination=table_ref, job_config=job_config, job_id_prefix="df_load_", project=table_ref.project, location=BQ_LOCATION
     )
-    if BQ_LOCATION:
-        job.location = BQ_LOCATION  # （未指定でも通常は自動解決されます）
 
     logging.info(f"[BQ] Loading {len(df)} rows into {table_ref.path}")
     result = job.result()
@@ -98,9 +96,7 @@ def load_from_gcs(
     )
 
     logging.info(f"[BQ] Load from GCS {gcs_uri} -> {table_ref.path}")
-    job = client.load_table_from_uri(gcs_uri, table_ref, job_config=job_config, job_id_prefix="gcs_load_")
-    if BQ_LOCATION:
-        job.location = BQ_LOCATION
+    job = client.load_table_from_uri(gcs_uri, table_ref, job_config=job_config, job_id_prefix="gcs_load_", location=BQ_LOCATION)
     result = job.result()
     logging.info(f"[BQ] Load done: output_rows={result.output_rows}")
     return result
@@ -134,9 +130,7 @@ def delete_between(
         ]
     )
     logging.info(f"[BQ] DELETE BETWEEN on {full}: {start_ts_iso} - {end_ts_iso}")
-    job = client.query(sql, job_config=job_config)
-    if BQ_LOCATION:
-        job.location = BQ_LOCATION
+    job = client.query(sql, job_config=job_config, location=BQ_LOCATION)
     res = job.result()
     logging.info("[BQ] DELETE completed")
     return res
@@ -173,9 +167,7 @@ def upsert_by_keys(
 
     # 1) 一時テーブルへロード（テーブル作成 → 書き込み）
     logging.info(f"[BQ] Create temp table: {project}.{dataset}.{tmp_name}")
-    job = client.load_table_from_dataframe(df, tmp_ref, job_id_prefix="tmp_df_")
-    if BQ_LOCATION:
-        job.location = BQ_LOCATION
+    job = client.load_table_from_dataframe(df, tmp_ref, job_id_prefix="tmp_df_", location=BQ_LOCATION)
     job.result()
 
     # 2) MERGE SQL を生成
@@ -198,9 +190,7 @@ def upsert_by_keys(
     """
 
     logging.info(f"[BQ] MERGE into {target_full} on {key_columns}")
-    qjob = client.query(sql)
-    if BQ_LOCATION:
-        qjob.location = BQ_LOCATION
+    qjob = client.query(sql, location=BQ_LOCATION)
     qjob.result()
 
     # 3) 後始末：一時テーブル削除
