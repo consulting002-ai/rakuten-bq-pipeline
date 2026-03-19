@@ -1,0 +1,5 @@
+# ローカル開発・セットアップスクリプト用の追加依存関係
+# deploy_views.py / initialize_ltv_tables.py を実行する際に必要
+# Cloud Function 本体には不要（requirements.txt のみで動作）
+-r requirements.txt
+python-dotenv>=1.0.0

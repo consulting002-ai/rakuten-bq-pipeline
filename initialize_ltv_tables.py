@@ -5,20 +5,13 @@
 Usage:
     python initialize_ltv_tables.py
 """
-import os
 import logging
 from google.cloud import bigquery
+from config import PROJECT_ID, BQ_DATASET
 from ltv_updater import get_client
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
-
-PROJECT_ID = os.getenv("PROJECT_ID")
-BQ_DATASET = os.getenv("BQ_DATASET", "rakuten_orders")
 
 
 def initialize_user_first_purchase_info():
@@ -40,6 +33,7 @@ def initialize_user_first_purchase_info():
       SELECT
         order_number,
         user_email,
+        order_datetime,
         DATE(order_datetime, "Asia/Tokyo") AS order_date,
         DATE_TRUNC(DATE(order_datetime, "Asia/Tokyo"), MONTH) AS order_month
       FROM `{PROJECT_ID}.{BQ_DATASET}.orders`
@@ -55,9 +49,13 @@ def initialize_user_first_purchase_info():
         SELECT
           order_number,
           user_email,
+          order_datetime,
           order_date,
           order_month,
-          ROW_NUMBER() OVER(PARTITION BY user_email ORDER BY order_date ASC) AS rn
+          ROW_NUMBER() OVER(
+            PARTITION BY user_email
+            ORDER BY order_datetime ASC, order_number ASC
+          ) AS rn
         FROM base_orders
       )
       WHERE rn = 1
@@ -112,10 +110,8 @@ def initialize_entry_product_ltv():
     dummy_date = datetime(2020, 1, 1, tzinfo=ZoneInfo("Asia/Tokyo"))
     
     logging.info("Initializing entry_product_ltv_by_month_offset (all periods)...")
-    result = update_entry_product_ltv(dummy_date)
-    
-    logging.info(f"entry_product_ltv_by_month_offset initialized: {result['total_rows']} rows")
-    return result['total_rows']
+    update_entry_product_ltv(dummy_date)
+    logging.info("entry_product_ltv_by_month_offset initialized")
 
 
 def main():
@@ -132,8 +128,8 @@ def main():
     
     # 2) LTVテーブルの初期化
     try:
-        ltv_rows = initialize_entry_product_ltv()
-        logging.info(f"✅ entry_product_ltv_by_month_offset initialized: {ltv_rows} rows")
+        initialize_entry_product_ltv()
+        logging.info("✅ entry_product_ltv_by_month_offset initialized")
     except Exception as e:
         logging.error(f"❌ Failed to initialize entry_product_ltv_by_month_offset: {e}", exc_info=True)
         return

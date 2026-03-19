@@ -31,6 +31,8 @@ from dateutil.relativedelta import relativedelta
 from google.cloud import tasks_v2
 from google.api_core import exceptions
 
+from config import PROJECT_ID, BQ_LOCATION as LOCATION
+
 # ログ設定
 logging.basicConfig(
     level=logging.INFO,
@@ -38,9 +40,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 環境変数から設定を取得
-PROJECT_ID = os.getenv("PROJECT_ID")
-LOCATION = os.getenv("LOCATION", "asia-northeast1")
+# スクリプト固有の設定
 QUEUE_NAME = os.getenv("QUEUE_NAME", "rakuten-historical")
 FUNCTION_URL = os.getenv("FUNCTION_URL")
 

@@ -1,0 +1,19 @@
+{
+  "fields": [
+    {"name": "order_number",    "type": "STRING",    "mode": "REQUIRED"},
+    {"name": "basket_id",       "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "item_id",         "type": "STRING",    "mode": "REQUIRED"},
+    {"name": "item_name",       "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "manage_number",   "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "variant_id",      "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "sku_info",        "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "price",           "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "price_tax_incl",  "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "quantity",        "type": "INT64",     "mode": "NULLABLE"},
+    {"name": "subtotal",        "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "tax_rate",        "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "delivery_company","type": "STRING",    "mode": "NULLABLE"},
+    {"name": "inserted_at",     "type": "TIMESTAMP", "mode": "REQUIRED"},
+    {"name": "order_datetime",  "type": "TIMESTAMP", "mode": "NULLABLE"}
+  ]
+}

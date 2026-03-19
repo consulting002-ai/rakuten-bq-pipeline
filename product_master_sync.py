@@ -12,6 +12,7 @@ import requests
 import google.auth
 from google.auth.transport.requests import AuthorizedSession
 
+from config import BQ_DATASET, BQ_TABLE_PRODUCT_MASTER, PRODUCT_MASTER_SYNC_REQUIRED
 from bigquery_client import insert_dataframe
 
 # ============================================================
@@ -32,13 +33,6 @@ from bigquery_client import insert_dataframe
 #
 # Output BigQuery columns:
 # - manage_number, product_name, category_name, brand_name
-
-
-_REQUIRED_BOOL = ("true", "1", "t", "yes", "y")
-
-
-def _is_truthy(v: Optional[str]) -> bool:
-    return (v or "").strip().lower() in _REQUIRED_BOOL
 
 
 def _normalize_master_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -149,11 +143,9 @@ def sync_product_master(
 
     Returns a small dict for logging/response JSON.
     """
-    dataset = dataset or os.getenv("BQ_DATASET", "rakuten_orders")
-    table = table or os.getenv("BQ_TABLE_PRODUCT_MASTER_RAW", "product_master_raw")
-    required = required if required is not None else _is_truthy(
-        os.getenv("PRODUCT_MASTER_SYNC_REQUIRED", "false")
-    )
+    dataset = dataset or BQ_DATASET
+    table = table or BQ_TABLE_PRODUCT_MASTER
+    required = required if required is not None else PRODUCT_MASTER_SYNC_REQUIRED
 
     sheet_id = os.getenv("PRODUCT_MASTER_SHEET_ID")
     sheet_range = os.getenv("PRODUCT_MASTER_SHEET_RANGE", "B:E")

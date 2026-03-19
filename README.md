@@ -253,16 +253,29 @@ gcloud scheduler jobs create http rakuten-monthly-etl \
 
 ```
 rakuten-bq-pipeline/
-├── main.py                    # Cloud Functionエントリーポイント
+├── main.py                    # Cloud Functionエントリーポイント（ETL + LTV更新）
 ├── rakuten_client.py          # 楽天RMS APIクライアント
-├── storage_client.py          # Cloud Storageへの保存
-├── bigquery_client.py         # BigQueryへの書き込み
-├── transform.py               # データ正規化
+├── storage_client.py          # Cloud StorageへのRaw JSON保存
+├── bigquery_client.py         # BigQueryへの書き込み・MERGE操作
+├── transform.py               # getOrderレスポンスのDataFrame正規化
 ├── utils.py                   # Secret Manager / Logging設定
-├── deploy_historical_tasks.py # 過去データ取り込みスクリプト
-├── requirements.txt           # Python依存関係
+├── ltv_updater.py             # LTVテーブル更新ロジック
+├── product_master_sync.py     # Googleスプレッドシート → product_master_raw 同期
+├── deploy_views.py            # BigQueryテーブル・ビュー作成（初回セットアップ用）
+├── deploy_historical_tasks.py # 過去データ一括取り込みスクリプト
+├── initialize_ltv_tables.py   # LTVテーブル初期データ投入（初回のみ）
+├── cloudbuild.yaml            # Cloud Build 自動デプロイ設定
+├── update_secrets.ps1         # Secret Manager更新スクリプト（手動運用用）
+├── requirements.txt           # Cloud Function Python依存関係
+├── requirements-dev.txt       # ローカル開発用追加依存関係
 ├── README.md                  # このファイル
-└── DEPLOY_HISTORICAL.md       # 過去データ取り込みガイド
+├── NEWSHOP.md                 # 新ショップ追加手順書
+├── QUICKSTART.md              # 最短手順書（APIキー更新〜テスト）
+├── DEPLOYMENT_GUIDE.md        # 運用時デプロイ詳細ガイド
+├── LTV_CALCULATION.md         # LTV計算ロジック解説
+├── PRODUCT_MASTER.md          # 商品マスタ連携仕様
+├── DEPLOY_HISTORICAL.md       # 過去データ取り込みガイド
+└── _reference/                # 参照用ドキュメント・スクリプト
 ```
 
 ## データフロー
@@ -273,9 +286,9 @@ rakuten-bq-pipeline/
 - `searchOrder`: 指定期間の注文番号リストを取得
 - `getOrder`: 注文番号から注文詳細を取得
 
-#### getOrder ? version ??????
+#### getOrder のバージョン指定について
 
-RakutenPayOrderAPI ??????? ( `RakutenPayOrderAPI Response Sample/Request/getOrder/ver9/*.json` ) ?????getOrder ???????? `version` ??????????????????????????? `9` ????????????????????? `ORDER_EXT_API_GET_ORDER_ERROR_009` ????OrderModelList ????????????????
+`_reference/RakutenPayOrderAPI Response Sample/Request/getOrder/ver9/*.json` のサンプルを参照のこと。getOrder リクエストには `version` フィールドの指定が必須で、`9` を指定しないと `ORDER_EXT_API_GET_ORDER_ERROR_009` エラーになり OrderModelList が返されない。
 
 ### 2. Raw保存
 

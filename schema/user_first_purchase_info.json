@@ -1,0 +1,13 @@
+{
+  "fields": [
+    {"name": "user_email",           "type": "STRING",    "mode": "REQUIRED"},
+    {"name": "first_order_number",   "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "first_order_date",     "type": "DATE",      "mode": "NULLABLE"},
+    {"name": "first_order_month",    "type": "DATE",      "mode": "NULLABLE"},
+    {"name": "entry_manage_number",  "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "entry_item_name",      "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "category_name",        "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "brand_name",           "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "updated_at",           "type": "TIMESTAMP", "mode": "NULLABLE"}
+  ]
+}

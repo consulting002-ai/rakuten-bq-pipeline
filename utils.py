@@ -4,6 +4,8 @@ from typing import Optional
 from google.cloud import secretmanager
 from google.cloud import logging as cloud_logging
 
+from config import PROJECT_ID as _CONFIG_PROJECT_ID, RAKUTEN_SERVICE_SECRET_ID, RAKUTEN_LICENSE_KEY_ID
+
 
 # =========================
 # Secret Manager からの認証情報取得
@@ -25,8 +27,8 @@ def get_secret(secret_id: str, project_id: Optional[str] = None, version: str = 
         Exception: Secret Manager API呼び出しエラー
     """
     if not project_id:
-        # 1) 環境変数 2) ADC から自動取得 の順で解決
-        project_id = os.getenv("PROJECT_ID")
+        # 1) config（環境変数） 2) ADC から自動取得 の順で解決
+        project_id = _CONFIG_PROJECT_ID
         if not project_id:
             _, project_id = google.auth.default()
         if not project_id:
@@ -58,8 +60,8 @@ def get_rakuten_credentials(project_id: Optional[str] = None) -> tuple[str, str]
         - RAKUTEN_SERVICE_SECRET_ID (デフォルト: "rakuten-service-secret")
         - RAKUTEN_LICENSE_KEY_ID (デフォルト: "rakuten-license-key")
     """
-    service_secret_id = os.getenv("RAKUTEN_SERVICE_SECRET_ID", "rakuten-service-secret")
-    license_key_id = os.getenv("RAKUTEN_LICENSE_KEY_ID", "rakuten-license-key")
+    service_secret_id = RAKUTEN_SERVICE_SECRET_ID
+    license_key_id = RAKUTEN_LICENSE_KEY_ID
     
     service_secret = get_secret(service_secret_id, project_id)
     license_key = get_secret(license_key_id, project_id)
@@ -83,8 +85,8 @@ def setup_cloud_logging(project_id: Optional[str] = None, log_name: str = "rakut
         ローカル開発環境でのみ有効です。
     """
     if not project_id:
-        project_id = os.getenv("PROJECT_ID")
-    
+        project_id = _CONFIG_PROJECT_ID
+
     # Cloud Functions環境では標準出力が自動的にCloud Loggingに送信される
     # ローカル環境でのみCloud Loggingクライアントを使用
     if os.getenv("FUNCTION_TARGET") or os.getenv("K_SERVICE"):

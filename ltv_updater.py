@@ -1,12 +1,9 @@
-import os
 import logging
 from datetime import datetime
 from google.cloud import bigquery
 from typing import Optional
 
-PROJECT_ID = os.getenv("PROJECT_ID")
-BQ_DATASET = os.getenv("BQ_DATASET", "rakuten_orders")
-BQ_LOCATION = os.getenv("BQ_LOCATION", "asia-northeast1")
+from config import PROJECT_ID, BQ_DATASET, BQ_LOCATION
 
 
 def get_client():
@@ -46,6 +43,7 @@ def update_user_first_purchase_info(processed_month_start: datetime) -> dict:
         SELECT
           order_number,
           user_email,
+          order_datetime,
           DATE(order_datetime, "Asia/Tokyo") AS order_date,
           DATE_TRUNC(DATE(order_datetime, "Asia/Tokyo"), MONTH) AS order_month
         FROM `{PROJECT_ID}.{BQ_DATASET}.orders`
@@ -61,9 +59,13 @@ def update_user_first_purchase_info(processed_month_start: datetime) -> dict:
           SELECT
             order_number,
             user_email,
+            order_datetime,
             order_date,
             order_month,
-            ROW_NUMBER() OVER(PARTITION BY user_email ORDER BY order_date ASC) AS rn
+            ROW_NUMBER() OVER(
+              PARTITION BY user_email
+              ORDER BY order_datetime ASC, order_number ASC
+            ) AS rn
           FROM base_orders
         )
         WHERE rn = 1
@@ -248,16 +250,10 @@ def update_entry_product_ltv(processed_month_start: datetime) -> dict:
     
     logging.info("Updating entry_product_ltv_by_month_offset (full recalculation)")
     job = client.query(sql)
-    result = job.result()
-    
-    # 更新行数を取得
-    total_rows = result.total_rows if hasattr(result, 'total_rows') else 0
-    
-    logging.info(f"entry_product_ltv_by_month_offset updated: {total_rows} rows")
-    
-    return {
-        "total_rows": total_rows
-    }
+    job.result()
+    logging.info("entry_product_ltv_by_month_offset updated")
+
+    return {}
 
 
 def update_ltv_item_names_from_master() -> dict:

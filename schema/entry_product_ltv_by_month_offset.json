@@ -1,0 +1,22 @@
+{
+  "fields": [
+    {"name": "entry_manage_number", "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "entry_item_name",     "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "category_name",       "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "brand_name",          "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "first_order_month",   "type": "DATE",      "mode": "NULLABLE"},
+    {"name": "month_offset",        "type": "INT64",     "mode": "NULLABLE"},
+    {"name": "cohort_users",        "type": "INT64",     "mode": "NULLABLE"},
+    {"name": "active_buyers",       "type": "INT64",     "mode": "NULLABLE"},
+    {"name": "revenue_in_month",    "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "cumulative_revenue",  "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "ltv_per_user",        "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "aov_in_month",        "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "updated_at",          "type": "TIMESTAMP", "mode": "NULLABLE"}
+  ],
+  "time_partitioning": {
+    "type": "DAY",
+    "field": "first_order_month"
+  },
+  "clustering_fields": ["entry_manage_number", "month_offset"]
+}

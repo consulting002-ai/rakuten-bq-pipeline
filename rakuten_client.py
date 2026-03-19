@@ -1,17 +1,11 @@
 import os
-import json
 import time
 import base64
 import logging
 import requests
-from datetime import datetime, timedelta
 
+from config import RAKUTEN_API_BASE_URL as BASE_URL, RAKUTEN_MAX_RETRIES as MAX_RETRIES, RAKUTEN_PAGE_SIZE as PAGE_SIZE
 from utils import get_rakuten_credentials
-
-# ------------------------------
-# 設定
-# ------------------------------
-BASE_URL = os.getenv("BASE_URL", "https://api.rms.rakuten.co.jp/es/2.0/order/")
 
 # Secret Managerから認証情報を取得（環境変数にフォールバック）
 try:
@@ -27,10 +21,6 @@ except Exception as e:
 # ここで正規化（クレンジング）
 SERVICE_SECRET = (SERVICE_SECRET or "").strip()
 LICENSE_KEY = (LICENSE_KEY or "").strip()
-
-# 取得制限
-MAX_RETRIES = 5
-PAGE_SIZE = 100  # searchOrder/getOrder の1ページ最大件数
 
 
 # ------------------------------

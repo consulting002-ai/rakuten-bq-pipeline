@@ -1,16 +1,39 @@
-# This file specifies files that are *not* uploaded to Google Cloud
-# using gcloud. It follows the same syntax as .gitignore, with the addition of
-# "#!include" directives (which insert the entries of the given .gitignore-style
-# file at that point).
-#
-# For more information, run:
-#   $ gcloud topic gcloudignore
-#
-.gcloudignore
-# If you would like to upload your .git directory, .gitignore file or files
-# from your .gitignore file, remove the corresponding line
-# below:
+# Cloud Functions へのデプロイ対象外ファイル
+# gcloud functions deploy --source=. で除外されるファイルを指定
+
+# Git 管理ファイル
 .git
 .gitignore
 
-node_modules
+# 開発・セットアップ用スクリプト（Cloud Shell から実行するもの）
+deploy_historical_tasks.py
+initialize_ltv_tables.py
+requirements-dev.txt
+update_secrets.ps1
+
+# インフラ設定（Cloud Build が直接参照するため関数ソースには不要）
+cloudbuild.yaml
+
+# ドキュメント
+*.md
+
+# 開発資料（GitHub には置くが Cloud Function には不要）
+_reference/
+
+# ローカル専用ディレクトリ
+_reports/
+
+# 開発環境
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.local
+.cursor/
+
+# ダウンロードファイル
+downloaded-logs*.json
+*.csv
+*.xlsx
+*.xls

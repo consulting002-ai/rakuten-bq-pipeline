@@ -20,7 +20,7 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Secrets and credentials
+# シークレット・認証情報
 *.key
 *.pem
 *.p12
@@ -28,19 +28,20 @@ Thumbs.db
 .env.local
 temp_service_secret*.txt
 temp_license_key*.txt
+service-account*.json
 
 # Google Cloud
 .gcloudignore
-service-account*.json
 
-# Logs
+# ログ
 *.log
+downloaded-logs*.json
 
-# Test files
+# テストファイル
 test_*.py
 *_test.py
 
-# Distribution / packaging
+# パッケージング
 dist/
 build/
 *.egg-info/
@@ -48,12 +49,14 @@ build/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Local data files
+# ローカルデータファイル（_reference/ 内の CSV は除外）
 *.csv
-!manage_variant_skuinfo.csv
 *.xlsx
 *.xls
 
-# Backup files
+# バックアップ
 *.bak
 *.backup
+
+# ローカル専用ディレクトリ（GitHub にもコピーしない）
+_reports/

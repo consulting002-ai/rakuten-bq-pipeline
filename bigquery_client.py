@@ -1,4 +1,3 @@
-import os
 import uuid
 import logging
 from typing import List, Optional, Sequence
@@ -6,9 +5,7 @@ from typing import List, Optional, Sequence
 import pandas as pd
 from google.cloud import bigquery
 
-PROJECT_ID = os.getenv("PROJECT_ID")
-# データセットのロケーションに合わせる（例: asia-northeast1）
-BQ_LOCATION = os.getenv("BQ_LOCATION", None)  # 未指定なら自動解決
+from config import PROJECT_ID, BQ_LOCATION
 
 
 # ------------------------------------------------------------

@@ -1,14 +1,9 @@
-import os
 import json
 import logging
 from datetime import datetime
 from google.cloud import storage
 
-# -----------------------------------------
-# 設定値（環境変数から取得）
-# -----------------------------------------
-BUCKET_NAME = os.getenv("BUCKET_NAME")  # 例: rakuten-orders
-PROJECT_ID = os.getenv("PROJECT_ID")
+from config import BUCKET_NAME, PROJECT_ID
 
 # -----------------------------------------
 # GCSクライアント初期化

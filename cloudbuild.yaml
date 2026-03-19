@@ -1,0 +1,47 @@
+# Cloud Build - 自動デプロイ設定
+#
+# GitHub の main ブランチへの push で Cloud Build Trigger が本ファイルを実行します。
+# コードのみを更新します。環境変数は初回デプロイ時に設定した値が保持されます。
+#
+# 初回デプロイ（環境変数のセット）は NEWSHOP.md の Step 8・9 を参照してください。
+
+steps:
+  # ETL 本体（Cloud Scheduler から呼ばれる。認証なし）
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - functions
+      - deploy
+      - rakuten-etl
+      - --gen2
+      - --runtime=python311
+      - --region=asia-northeast1
+      - --source=.
+      - --entry-point=main
+      - --trigger-http
+      - --allow-unauthenticated
+      - --memory=2GiB
+      - --timeout=540s
+      - --project=$PROJECT_ID
+      # --set-env-vars は指定しない（既存の環境変数を保持するため）
+
+  # 管理機能（licenseKey 更新。IAP で Google 認証必須）
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - functions
+      - deploy
+      - rakuten-admin
+      - --gen2
+      - --runtime=python311
+      - --region=asia-northeast1
+      - --source=.
+      - --entry-point=admin
+      - --trigger-http
+      - --no-allow-unauthenticated
+      - --memory=256Mi
+      - --timeout=60s
+      - --project=$PROJECT_ID
+      # --set-env-vars は指定しない（既存の環境変数を保持するため）
+
+timeout: 600s

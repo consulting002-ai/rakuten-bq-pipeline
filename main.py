@@ -1,4 +1,3 @@
-import os
 import json
 import logging
 from datetime import datetime, timedelta
@@ -8,8 +7,15 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 from flask import jsonify
 
+from config import (
+    BQ_DATASET,
+    BQ_TABLE_ORDERS,
+    BQ_TABLE_ORDER_ITEMS,
+    STRICT_RAW_PER_BATCH,
+    SKIP_LTV_UPDATE,
+)
 from utils import setup_cloud_logging
-from rakuten_client import search_order, get_order, PAGE_SIZE  # 既存のひな型を利用
+from rakuten_client import search_order, get_order, PAGE_SIZE
 from storage_client import upload_raw_json
 from transform import normalize_all
 from product_master_sync import sync_product_master
@@ -17,26 +23,6 @@ from bigquery_client import (
     replace_month_with_dataframes,
     delete_between,
     insert_dataframe,
-)
-
-# Flask app の初期化
-
-# =========================
-# 環境変数
-# =========================
-PROJECT_ID = os.getenv("PROJECT_ID")
-BQ_DATASET = os.getenv("BQ_DATASET", "rakuten_orders")
-BQ_TABLE_ORDERS = os.getenv("BQ_TABLE_ORDERS", "orders")
-BQ_TABLE_ORDER_ITEMS = os.getenv("BQ_TABLE_ORDER_ITEMS", "order_items")
-BUCKET_NAME = os.getenv("BUCKET_NAME")  # storage_client側で参照
-BQ_LOCATION = os.getenv("BQ_LOCATION")  # 任意
-# 厳密に「API呼び出し単位のRaw」を残したい場合は True
-STRICT_RAW_PER_BATCH = os.getenv("STRICT_RAW_PER_BATCH", "false").lower() in (
-    "true",
-    "1",
-    "t",
-    "yes",
-    "y",
 )
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -220,12 +206,11 @@ def process_one_month(m_start_jst: datetime, m_end_jst: datetime) -> dict:
     
     # 6) LTV集計テーブル更新（エラーハンドリング）
     ltv_result = None
-    skip_ltv_update = os.getenv("SKIP_LTV_UPDATE", "false").lower() in ("true", "1")
-    if not skip_ltv_update:
+    if not SKIP_LTV_UPDATE:
         try:
             from ltv_updater import update_entry_product_ltv
             ltv_result = update_entry_product_ltv(m_start_jst)
-            logging.info(f"LTVテーブル更新成功: {ltv_result}")
+            logging.info("LTVテーブル更新成功")
         except Exception as e:
             logging.error(f"LTVテーブル更新失敗（注文取り込みは成功）: {e}", exc_info=True)
     else:

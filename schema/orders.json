@@ -1,0 +1,24 @@
+{
+  "fields": [
+    {"name": "order_number",          "type": "STRING",    "mode": "REQUIRED"},
+    {"name": "order_datetime",        "type": "TIMESTAMP", "mode": "REQUIRED"},
+    {"name": "order_status",          "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "cancel_due_date",       "type": "DATE",      "mode": "NULLABLE"},
+    {"name": "total_price",           "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "goods_price",           "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "postage_price",         "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "payment_fee",           "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "used_point",            "type": "FLOAT64",   "mode": "NULLABLE"},
+    {"name": "payment_method",        "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "card_name",             "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "delivery_name",         "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "delivery_date",         "type": "DATE",      "mode": "NULLABLE"},
+    {"name": "rakuten_member_flag",   "type": "BOOL",      "mode": "NULLABLE"},
+    {"name": "user_email",            "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "prefecture",            "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "city",                  "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "zip_code",              "type": "STRING",    "mode": "NULLABLE"},
+    {"name": "order_update_datetime", "type": "TIMESTAMP", "mode": "NULLABLE"},
+    {"name": "inserted_at",           "type": "TIMESTAMP", "mode": "REQUIRED"}
+  ]
+}
