@@ -330,6 +330,10 @@ def sync_product_master_endpoint(request):
         }), 500
 
 
+# admin エントリーポイントを main.py から公開（Functions Framework は main.py から関数を探す）
+from admin import admin  # noqa: F401
+
+
 # Cloud Functions の場合、main という名前でエクスポート
 def main(request):
     """

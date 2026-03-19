@@ -25,8 +25,8 @@ def admin(request):
     """
     setup_cloud_logging()
     path = (request.path or "/").rstrip("/") or "/"
-
-    if path == "/update-license-key":
+    # Gen2 では /rakuten-admin/update-license-key のように関数名が含まれる場合がある
+    if path == "/update-license-key" or path.endswith("/update-license-key"):
         if request.method == "GET":
             return _serve_form()
         if request.method == "POST":
@@ -71,7 +71,7 @@ def _serve_form():
 </head>
 <body>
   <h1>楽天RMS licenseKey 更新</h1>
-  <form method="POST" action="/update-license-key">
+  <form method="POST" action="">
     <label for="license_key">新しい licenseKey</label>
     <input type="text" id="license_key" name="license_key" required
            placeholder="SLxxxxxx_xxxxxxxxxxxxxxxx" autocomplete="off">
