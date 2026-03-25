@@ -33,7 +33,7 @@ GCS バケット名は `{PROJECT_ID}-raw-jsons` を推奨します（例：`{SHO
 
 ```bash
 # PROJECT_ID を変数に設定（以降のコマンドで使い回す）
-PROJECT_ID="{SHOP_ID}-ltv"   # ← {SHOP_ID} を実際のショップIDに変更してください（例: smarttanpaku-ltv）
+PROJECT_ID="{SHOP_ID}-ltv"   # ← {SHOP_ID} を実際のショップIDに変更してください（例: vitas-ltv）
 
 # プロジェクトを作成（プロジェクトIDは世界で一意である必要があります）
 gcloud projects create $PROJECT_ID --name="{ショップ名} LTV"
@@ -59,7 +59,6 @@ gcloud services enable \
   secretmanager.googleapis.com \
   cloudscheduler.googleapis.com \
   sheets.googleapis.com \
-  iap.googleapis.com \
   run.googleapis.com \
   --project=$PROJECT_ID
 ```
@@ -71,7 +70,7 @@ gcloud services enable \
 Cloud Shell でリポジトリをクローンします（Step 7 の初回デプロイと bootstrap.py の実行に使用）：
 
 ```bash
-git clone https://github.com/{org}/rakuten-bq-pipeline.git
+git clone https://github.com/consulting002-ai/rakuten-bq-pipeline.git
 cd rakuten-bq-pipeline
 pip install -r requirements.txt
 ```
@@ -130,14 +129,14 @@ echo -n "$LIC_KEY" | gcloud secrets versions add rakuten-license-key \
   --data-file=- --project=$PROJECT_ID
 ```
 
-> **serviceSecret は変わりません。** licenseKey は90日ごとに楽天RMSで再発行が必要です。
+> **serviceSecret は変わりません。** ライセンスキーは90日ごとに楽天RMSで再発行が必要です。
 > 更新は `rakuten-admin` の `/update-license-key` ページから行います（Step 8参照）。
 
 ---
 
 ## Step 6：Chatwork通知用の Secret を登録
 
-`rakuten-admin` から licenseKey 更新時の通知に使います。
+`rakuten-admin` からライセンスキー更新時の通知に使います。
 
 ```bash
 # Secretを作成
@@ -183,6 +182,9 @@ gcloud functions deploy rakuten-etl \
 
 ### 7-2. 管理機能（rakuten-admin）
 
+ライセンスキー更新ページを公開エンドポイントとしてデプロイします。
+アクセス制御はフォーム上の「現在のライセンスキー」による本人確認で行います。
+
 ```bash
 gcloud functions deploy rakuten-admin \
   --gen2 \
@@ -191,7 +193,7 @@ gcloud functions deploy rakuten-admin \
   --source=. \
   --entry-point=admin \
   --trigger-http \
-  --no-allow-unauthenticated \
+  --allow-unauthenticated \
   --memory=256Mi \
   --timeout=60s \
   --set-env-vars="PROJECT_ID=${PROJECT_ID},SHOP_NAME={ショップ表示名}" \
@@ -204,21 +206,22 @@ gcloud functions deploy rakuten-admin \
 
 ---
 
-## Step 8：IAP（Identity-Aware Proxy）の有効化
+## Step 8：ライセンスキー更新ページの確認
 
-`rakuten-admin` を IAP で保護し、Cloud Logging にアクセス者のGoogleアカウントを自動記録します。
+ライセンスキー更新ページは認証不要の公開エンドポイントです。
+フォームで「現在のライセンスキー」を入力することで本人確認を行います。
 
-1. GCP Console → **セキュリティ** → **Identity-Aware Proxy** を開く
-2. **CLOUD RUN** タブを選択
-3. `rakuten-admin` を見つけて **IAP を有効化**
-4. 初期状態ではアクセス制限なし（Googleログインのみ必須）
-5. 特定アカウントのみに制限する場合：
-   - `rakuten-admin` の行右端 → **プリンシパルを追加**
-   - メールアドレスを入力、ロール：`Cloud IAP > IAP-secured Web App User`
-
-> **licenseKey 更新ページの URL**：
+> **ライセンスキー更新ページの URL**：
 > `https://asia-northeast1-{PROJECT_ID}.cloudfunctions.net/rakuten-admin/update-license-key`
-> このURLを担当者に案内してください。
+>
+> このURLを担当者に案内してください。URLは外部に漏れないよう管理してください。
+
+**動作確認：**
+
+1. 上記 URL をブラウザで開く
+2. フォームが表示されることを確認
+3. 現在のライセンスキーを誤入力 → 「現在のライセンスキーが正しくありません。」が表示されること
+4. 現在のライセンスキーを正しく入力 → 「✅ ライセンスキーを更新しました」が表示されること
 
 ---
 
@@ -291,7 +294,7 @@ curl "$FUNCTION_URL?mode=MONTHLY"
 - [ ] LTVテーブルが更新されている
 - [ ] Cloud Storage に Raw JSON が保存されている
 - [ ] Cloud Scheduler が設定されている
-- [ ] `rakuten-admin` の licenseKey 更新ページにアクセスできる
+- [ ] `rakuten-admin` のライセンスキー更新ページにアクセスできる
 
 ---
 
@@ -306,5 +309,5 @@ curl "$FUNCTION_URL?mode=MONTHLY"
 | BQ_DATASET | `rakuten_orders` |
 | スプレッドシートID | |
 | Cloud Function URL（rakuten-etl） | |
-| licenseKey 更新URL（rakuten-admin） | |
+| ライセンスキー更新URL（rakuten-admin） | |
 | GitHubリポジトリ | |
