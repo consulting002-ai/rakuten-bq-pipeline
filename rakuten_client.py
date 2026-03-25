@@ -7,28 +7,23 @@ import requests
 from config import RAKUTEN_API_BASE_URL as BASE_URL, RAKUTEN_MAX_RETRIES as MAX_RETRIES, RAKUTEN_PAGE_SIZE as PAGE_SIZE
 from utils import get_rakuten_credentials
 
-# Secret Managerから認証情報を取得（環境変数にフォールバック）
-try:
-    SERVICE_SECRET, LICENSE_KEY = get_rakuten_credentials()
-except Exception as e:
-    # Secret Manager取得に失敗した場合は環境変数から取得（後方互換性）
-    logging.warning(
-        f"Secret Managerからの認証情報取得に失敗しました。環境変数から取得します: {e}"
-    )
-    SERVICE_SECRET = os.getenv("RAKUTEN_SERVICE_SECRET")
-    LICENSE_KEY = os.getenv("RAKUTEN_LICENSE_KEY")
-
-# ここで正規化（クレンジング）
-SERVICE_SECRET = (SERVICE_SECRET or "").strip()
-LICENSE_KEY = (LICENSE_KEY or "").strip()
-
 
 # ------------------------------
 # 認証ヘッダー生成
 # ------------------------------
 def build_auth_header():
-    """ESA認証ヘッダーを生成"""
-    auth_str = f"{SERVICE_SECRET.strip()}:{LICENSE_KEY.strip()}"
+    """ESA認証ヘッダーを生成（毎回 Secret Manager から最新の認証情報を取得）"""
+    try:
+        service_secret, license_key = get_rakuten_credentials()
+    except Exception as e:
+        logging.warning(f"Secret Managerからの認証情報取得に失敗しました。環境変数から取得します: {e}")
+        service_secret = os.getenv("RAKUTEN_SERVICE_SECRET", "")
+        license_key = os.getenv("RAKUTEN_LICENSE_KEY", "")
+
+    service_secret = (service_secret or "").strip()
+    license_key = (license_key or "").strip()
+
+    auth_str = f"{service_secret}:{license_key}"
     encoded = base64.b64encode(auth_str.encode()).decode()
     return {
         "Authorization": f"ESA {encoded}",
