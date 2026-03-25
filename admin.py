@@ -17,7 +17,7 @@ LICENSE_KEY_SECRET_ID = RAKUTEN_LICENSE_KEY_ID
 def admin(request):
     """
     管理用 Cloud Function エントリーポイント。
-    IAP（Identity-Aware Proxy）で保護され、アクセスには Google 認証が必要。
+    認証なしで公開。現在の licenseKey を入力することで本人確認を行う。
 
     エンドポイント:
       GET  /update-license-key  → 更新フォームを表示
@@ -25,7 +25,6 @@ def admin(request):
     """
     setup_cloud_logging()
     path = (request.path or "/").rstrip("/") or "/"
-    # Gen2 では /rakuten-admin/update-license-key のように関数名が含まれる場合がある
     if path == "/update-license-key" or path.endswith("/update-license-key"):
         if request.method == "GET":
             return _serve_form()
@@ -36,49 +35,41 @@ def admin(request):
 
 
 # =========================
-# IAP ヘッダーから呼び出し元メールを取得
-# =========================
-def _get_caller_email(request) -> str:
-    """
-    IAP が付与する X-Goog-Authenticated-User-Email ヘッダーからメールアドレスを返す。
-    値の形式: "accounts.google.com:user@example.com"
-    """
-    raw = request.headers.get("X-Goog-Authenticated-User-Email", "")
-    if ":" in raw:
-        return raw.split(":", 1)[1]
-    return raw or "unknown"
-
-
-# =========================
 # GET: 更新フォームを表示
 # =========================
-def _serve_form():
-    html = """<!DOCTYPE html>
+def _serve_form(error: str = ""):
+    error_html = f'<p class="error">{error}</p>' if error else ""
+    html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>licenseKey 更新</title>
   <style>
-    body { font-family: sans-serif; max-width: 480px; margin: 60px auto; padding: 0 20px; color: #333; }
-    h1 { font-size: 1.2rem; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
-    label { display: block; margin-top: 16px; font-weight: bold; }
-    input[type=text] { width: 100%; padding: 8px; font-size: 1rem; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px; }
-    button { margin-top: 16px; padding: 10px 28px; font-size: 1rem; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #1558b0; }
-    .note { color: #666; font-size: 0.85rem; margin-top: 6px; }
+    body {{ font-family: sans-serif; max-width: 480px; margin: 60px auto; padding: 0 20px; color: #333; }}
+    h1 {{ font-size: 1.2rem; border-bottom: 1px solid #ddd; padding-bottom: 8px; }}
+    label {{ display: block; margin-top: 16px; font-weight: bold; }}
+    input[type=text], input[type=password] {{ width: 100%; padding: 8px; font-size: 1rem; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px; }}
+    button {{ margin-top: 16px; padding: 10px 28px; font-size: 1rem; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }}
+    button:hover {{ background: #1558b0; }}
+    .note {{ color: #666; font-size: 0.85rem; margin-top: 6px; }}
+    .error {{ color: #c62828; font-weight: bold; margin-top: 12px; }}
   </style>
 </head>
 <body>
-  <h1>楽天RMS licenseKey 更新</h1>
+  <h1>楽天RMS licenseKey 更新（{SHOP_NAME}）</h1>
+  {error_html}
   <form method="POST" action="">
-    <label for="license_key">新しい licenseKey</label>
-    <input type="text" id="license_key" name="license_key" required
+    <label for="current_license_key">現在の licenseKey（確認用）</label>
+    <input type="password" id="current_license_key" name="current_license_key" required
+           placeholder="現在登録されている licenseKey" autocomplete="off">
+    <p class="note">楽天RMSに現在登録されている licenseKey を入力してください。</p>
+
+    <label for="new_license_key">新しい licenseKey</label>
+    <input type="text" id="new_license_key" name="new_license_key" required
            placeholder="SLxxxxxx_xxxxxxxxxxxxxxxx" autocomplete="off">
-    <p class="note">
-      楽天RMS Web Service の認証情報ページで発行した licenseKey を貼り付けてください。<br>
-      更新者のGoogleアカウントとともに記録されます。
-    </p>
+    <p class="note">楽天RMS Web Service の認証情報ページで新たに発行した licenseKey を貼り付けてください。</p>
+
     <button type="submit">更新する</button>
   </form>
 </body>
@@ -90,23 +81,34 @@ def _serve_form():
 # POST: licenseKey を更新
 # =========================
 def _handle_update(request):
-    caller_email = _get_caller_email(request)
-    license_key = (request.form.get("license_key") or "").strip()
+    current_license_key = (request.form.get("current_license_key") or "").strip()
+    new_license_key = (request.form.get("new_license_key") or "").strip()
 
-    if not license_key:
-        return make_response("license_key が空です。", 400)
+    if not current_license_key or not new_license_key:
+        return _serve_form(error="すべての項目を入力してください。")
 
-    # Secret Manager に新バージョンを追加
+    # 現在の licenseKey を Secret Manager から取得して照合
+    try:
+        stored_license_key = get_secret(LICENSE_KEY_SECRET_ID)
+    except Exception as e:
+        logging.error(f"現在の licenseKey 取得失敗: {e}")
+        return _serve_form(error="現在の licenseKey の取得に失敗しました。しばらくして再試行してください。")
+
+    if current_license_key != stored_license_key:
+        logging.warning("licenseKey 更新失敗: 現在の licenseKey が一致しません")
+        return _serve_form(error="現在の licenseKey が正しくありません。")
+
+    # 新しい licenseKey を Secret Manager に登録
     client = secretmanager.SecretManagerServiceClient()
     secret_name = f"projects/{PROJECT_ID}/secrets/{LICENSE_KEY_SECRET_ID}"
     client.add_secret_version(
-        request={"parent": secret_name, "payload": {"data": license_key.encode()}}
+        request={"parent": secret_name, "payload": {"data": new_license_key.encode()}}
     )
 
     now_jst = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S JST")
-    logging.info(f"licenseKey updated by {caller_email} at {now_jst}")
+    logging.info(f"licenseKey updated at {now_jst}")
 
-    _notify_chatwork(caller_email, now_jst)
+    _notify_chatwork(now_jst)
 
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -122,7 +124,6 @@ def _handle_update(request):
 <body>
   <h1>✅ licenseKey を更新しました</h1>
   <ul>
-    <li>更新者: {caller_email}</li>
     <li>更新日時: {now_jst}</li>
     <li>ショップ: {SHOP_NAME}</li>
   </ul>
@@ -134,7 +135,7 @@ def _handle_update(request):
 # =========================
 # Chatwork 通知
 # =========================
-def _notify_chatwork(caller_email: str, timestamp: str):
+def _notify_chatwork(timestamp: str):
     try:
         token = get_secret("chatwork-api-token")
         room_id = get_secret("chatwork-room-id")
@@ -145,7 +146,6 @@ def _notify_chatwork(caller_email: str, timestamp: str):
     message = (
         f"[info][title]🔑 licenseKey 更新通知[/title]"
         f"ショップ: {SHOP_NAME}\n"
-        f"更新者: {caller_email}\n"
         f"更新日時: {timestamp}[/info]"
     )
 
