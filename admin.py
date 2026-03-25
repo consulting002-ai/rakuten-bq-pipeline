@@ -44,7 +44,7 @@ def _serve_form(error: str = ""):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>licenseKey 更新</title>
+  <title>{SHOP_NAME} ライセンスキー更新</title>
   <style>
     body {{ font-family: sans-serif; max-width: 480px; margin: 60px auto; padding: 0 20px; color: #333; }}
     h1 {{ font-size: 1.2rem; border-bottom: 1px solid #ddd; padding-bottom: 8px; }}
@@ -57,18 +57,16 @@ def _serve_form(error: str = ""):
   </style>
 </head>
 <body>
-  <h1>楽天RMS licenseKey 更新（{SHOP_NAME}）</h1>
+  <h1>LTVデータ作成用 ライセンスキー更新（{SHOP_NAME}）</h1>
   {error_html}
   <form method="POST" action="">
     <label for="current_license_key">現在のライセンスキー（確認用）</label>
     <input type="password" id="current_license_key" name="current_license_key" required
-           placeholder="現在登録されているライセンスキー" autocomplete="off">
-    <p class="note">楽天RMSに現在登録されているライセンスキーを入力してください。</p>
+           placeholder="SLxxxxxx_xxxxxxxxxxxxxxxx" autocomplete="off">
 
     <label for="new_license_key">新しいライセンスキー</label>
     <input type="text" id="new_license_key" name="new_license_key" required
            placeholder="SLxxxxxx_xxxxxxxxxxxxxxxx" autocomplete="off">
-    <p class="note">楽天RMS Web Service の認証情報ページで新たに発行したライセンスキーを貼り付けてください。</p>
 
     <button type="submit">更新する</button>
   </form>
