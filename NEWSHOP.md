@@ -33,7 +33,7 @@ GCS バケット名は `{PROJECT_ID}-raw-jsons` を推奨します（例：`{SHO
 
 ```bash
 # PROJECT_ID を変数に設定（以降のコマンドで使い回す）
-PROJECT_ID="{SHOP_ID}-ltv"   # ← {SHOP_ID} を実際のショップIDに変更してください（例: vitas-ltv）
+PROJECT_ID="{SHOP_ID}-ltv"   # ← {SHOP_ID} を実際のショップIDに変更してください（例: smarttanpaku-ltv）
 
 # プロジェクトを作成（プロジェクトIDは世界で一意である必要があります）
 gcloud projects create $PROJECT_ID --name="{ショップ名} LTV"
