@@ -156,12 +156,30 @@ echo -n "$CW_ROOM" | gcloud secrets versions add chatwork-room-id \
 
 ---
 
-## Step 7：Cloud Functionの初回デプロイ（環境変数のセット）
+## Step 7：Cloud Function サービスアカウントへの権限付与
+
+Cloud Functions Gen2 は Compute Engine のデフォルトサービスアカウントで実行されます。
+Secret Manager へのアクセスに必要な権限を付与します。
+
+```bash
+# Compute Engine デフォルト SA のメールアドレスを取得
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+SA_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+# Secret Manager へのアクセス権を付与
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+---
+
+## Step 8：Cloud Functionの初回デプロイ（環境変数のセット）
 
 **Cloud Build Trigger は環境変数を更新しません。** 初回のみ以下のコマンドで環境変数を込みでデプロイします。
 Step 3 でクローンしたリポジトリのディレクトリ内で実行してください。
 
-### 7-1. ETL本体（rakuten-etl）
+### 8-1. ETL本体（rakuten-etl）
 
 ```bash
 BUCKET_NAME="${PROJECT_ID}-raw-jsons"
@@ -180,7 +198,7 @@ gcloud functions deploy rakuten-etl \
   --project=$PROJECT_ID
 ```
 
-### 7-2. 管理機能（rakuten-admin）
+### 8-2. 管理機能（rakuten-admin）
 
 ライセンスキー更新ページを公開エンドポイントとしてデプロイします。
 アクセス制御はフォーム上の「現在のライセンスキー」による本人確認で行います。
@@ -206,7 +224,7 @@ gcloud functions deploy rakuten-admin \
 
 ---
 
-## Step 8：ライセンスキー更新ページの確認
+## Step 9：ライセンスキー更新ページの確認
 
 ライセンスキー更新ページは認証不要の公開エンドポイントです。
 フォームで「現在のライセンスキー」を入力することで本人確認を行います。
@@ -225,7 +243,7 @@ gcloud functions deploy rakuten-admin \
 
 ---
 
-## Step 9：BigQueryデータセット・テーブルおよびGCSバケットの作成
+## Step 10：BigQueryデータセット・テーブルおよびGCSバケットの作成
 
 Cloud Shell で実行します（Step 3 のリポジトリディレクトリ内）。
 
@@ -242,7 +260,7 @@ PROJECT_ID=$PROJECT_ID \
 
 ---
 
-## Step 10：過去データの投入
+## Step 11：過去データの投入
 
 `DEPLOY_HISTORICAL.md` を参照して、過去2年分の注文データを取り込みます。
 
@@ -253,7 +271,7 @@ PROJECT_ID=$PROJECT_ID python initialize_ltv_tables.py
 
 ---
 
-## Step 11：Cloud Schedulerの設定（月次自動実行）
+## Step 12：Cloud Schedulerの設定（月次自動実行）
 
 ```bash
 # 関数のURLを確認
@@ -275,7 +293,7 @@ gcloud scheduler jobs create http rakuten-monthly-etl \
 
 ---
 
-## Step 12：動作確認
+## Step 13：動作確認
 
 ```bash
 FUNCTION_URL="https://asia-northeast1-${PROJECT_ID}.cloudfunctions.net/rakuten-etl"
