@@ -159,18 +159,33 @@ echo -n "$CW_ROOM" | gcloud secrets versions add chatwork-room-id \
 ## Step 7：Cloud Function サービスアカウントへの権限付与
 
 Cloud Functions Gen2 は Compute Engine のデフォルトサービスアカウントで実行されます。
-Secret Manager へのアクセスに必要な権限を付与します。
+以下の権限を付与します。
 
 ```bash
 # Compute Engine デフォルト SA のメールアドレスを取得
 PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
 SA_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+echo $SA_EMAIL
+```
 
-# Secret Manager へのアクセス権を付与
+### 7-1. Secret Manager へのアクセス権
+
+```bash
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/secretmanager.secretAccessor"
 ```
+
+### 7-2. Google スプレッドシートへのアクセス権
+
+商品マスタのスプレッドシートをサービスアカウントと共有します。
+GCP Console ではなく **Google スプレッドシート側** で設定します。
+
+1. 対象のスプレッドシートを開く
+2. 右上の「共有」ボタンをクリック
+3. 上記の `SA_EMAIL`（`{PROJECT_NUMBER}-compute@developer.gserviceaccount.com`）を追加
+4. 権限は「**閲覧者**」でOK
+5. 「送信」をクリック
 
 ---
 
