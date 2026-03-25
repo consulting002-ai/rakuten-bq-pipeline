@@ -60,15 +60,15 @@ def _serve_form(error: str = ""):
   <h1>楽天RMS licenseKey 更新（{SHOP_NAME}）</h1>
   {error_html}
   <form method="POST" action="">
-    <label for="current_license_key">現在の licenseKey（確認用）</label>
+    <label for="current_license_key">現在のライセンスキー（確認用）</label>
     <input type="password" id="current_license_key" name="current_license_key" required
-           placeholder="現在登録されている licenseKey" autocomplete="off">
-    <p class="note">楽天RMSに現在登録されている licenseKey を入力してください。</p>
+           placeholder="現在登録されているライセンスキー" autocomplete="off">
+    <p class="note">楽天RMSに現在登録されているライセンスキーを入力してください。</p>
 
-    <label for="new_license_key">新しい licenseKey</label>
+    <label for="new_license_key">新しいライセンスキー</label>
     <input type="text" id="new_license_key" name="new_license_key" required
            placeholder="SLxxxxxx_xxxxxxxxxxxxxxxx" autocomplete="off">
-    <p class="note">楽天RMS Web Service の認証情報ページで新たに発行した licenseKey を貼り付けてください。</p>
+    <p class="note">楽天RMS Web Service の認証情報ページで新たに発行したライセンスキーを貼り付けてください。</p>
 
     <button type="submit">更新する</button>
   </form>
@@ -87,16 +87,16 @@ def _handle_update(request):
     if not current_license_key or not new_license_key:
         return _serve_form(error="すべての項目を入力してください。")
 
-    # 現在の licenseKey を Secret Manager から取得して照合
+    # 現在のライセンスキーを Secret Manager から取得して照合
     try:
         stored_license_key = get_secret(LICENSE_KEY_SECRET_ID)
     except Exception as e:
-        logging.error(f"現在の licenseKey 取得失敗: {e}")
-        return _serve_form(error="現在の licenseKey の取得に失敗しました。しばらくして再試行してください。")
+        logging.error(f"現在のライセンスキー取得失敗: {e}")
+        return _serve_form(error="現在のライセンスキーの取得に失敗しました。しばらくして再試行してください。")
 
     if current_license_key != stored_license_key:
-        logging.warning("licenseKey 更新失敗: 現在の licenseKey が一致しません")
-        return _serve_form(error="現在の licenseKey が正しくありません。")
+        logging.warning("ライセンスキー更新失敗: 現在のライセンスキーが一致しません")
+        return _serve_form(error="現在のライセンスキーが正しくありません。")
 
     # 新しい licenseKey を Secret Manager に登録
     client = secretmanager.SecretManagerServiceClient()
@@ -122,7 +122,7 @@ def _handle_update(request):
   </style>
 </head>
 <body>
-  <h1>✅ licenseKey を更新しました</h1>
+  <h1>✅ ライセンスキーを更新しました</h1>
   <ul>
     <li>更新日時: {now_jst}</li>
     <li>ショップ: {SHOP_NAME}</li>
