@@ -284,6 +284,14 @@ def update_ltv_item_names_from_master() -> dict:
         FROM `{PROJECT_ID}.{BQ_DATASET}.product_master_raw`
         GROUP BY 1
       ),
+      -- マスタに登録されている商品のみ名称を更新する。
+      -- マスタに存在しない商品はソースに含めず、MERGE の対象外とすることで
+      -- ターゲットテーブルの既存の名称をそのまま維持する。
+      -- LEFT JOIN + COALESCE(pm.product_name, oi.item_name) は使用しない。
+      -- 理由: order_items には同一 manage_number で item_name が異なる行が複数存在する
+      -- （注文ごとに商品名スナップショットが記録されるため）。
+      -- マスタ未登録商品では COALESCE が oi.item_name にフォールバックし、
+      -- SELECT DISTINCT で重複が解消されず MERGE エラー（1ターゲットに複数ソース）になる。
       order_items_with_master AS (
         SELECT DISTINCT
           oi.manage_number,
