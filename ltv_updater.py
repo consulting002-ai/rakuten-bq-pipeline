@@ -285,13 +285,14 @@ def update_ltv_item_names_from_master() -> dict:
         GROUP BY 1
       ),
       order_items_with_master AS (
-        SELECT DISTINCT
+        SELECT
           oi.manage_number,
-          COALESCE(pm.product_name, oi.item_name) AS latest_item_name,
-          pm.category_name AS latest_category_name,
-          pm.brand_name AS latest_brand_name
+          MAX(COALESCE(pm.product_name, oi.item_name)) AS latest_item_name,
+          MAX(pm.category_name) AS latest_category_name,
+          MAX(pm.brand_name) AS latest_brand_name
         FROM `{PROJECT_ID}.{BQ_DATASET}.order_items` oi
         LEFT JOIN product_master pm ON pm.manage_number = oi.manage_number
+        GROUP BY oi.manage_number
       )
       SELECT
         manage_number AS entry_manage_number,
