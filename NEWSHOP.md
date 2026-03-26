@@ -210,7 +210,7 @@ gcloud functions deploy rakuten-etl \
   --allow-unauthenticated \
   --memory=2GiB \
   --timeout=540s \
-  --set-env-vars="PROJECT_ID=${PROJECT_ID},BUCKET_NAME=${BUCKET_NAME},BQ_DATASET=rakuten_orders,BQ_LOCATION=asia-northeast1,SKIP_LTV_UPDATE=false,PRODUCT_MASTER_SHEET_ID={SPREADSHEET_ID},PRODUCT_MASTER_SHEET_RANGE='シート1'!B:E" \
+  --set-env-vars="PROJECT_ID=${PROJECT_ID},BUCKET_NAME=${BUCKET_NAME},BQ_DATASET=rakuten_orders,BQ_LOCATION=asia-northeast1,SKIP_LTV_UPDATE=false,PRODUCT_MASTER_SHEET_ID={SPREADSHEET_ID},PRODUCT_MASTER_SHEET_RANGE=ASIN_List!B:E" \
   --project=$PROJECT_ID
 ```
 
@@ -235,6 +235,8 @@ gcloud functions deploy rakuten-admin \
 ```
 
 > **`{SPREADSHEET_ID}`** はGoogleスプレッドシートのURLに含まれるID（`/d/` と `/edit` の間の文字列）。
+>
+> **`PRODUCT_MASTER_SHEET_RANGE`** は `タブ名!列範囲` の形式で指定します。タブ名を省略して `B:E` のみにすると**最初のタブを自動取得**します。
 
 > **2回目以降のデプロイ**は GitHub への push → Cloud Build が自動実行します。環境変数はそのまま保持されます。
 
