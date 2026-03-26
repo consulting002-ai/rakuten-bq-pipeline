@@ -58,6 +58,7 @@ gcloud services enable \
   storage.googleapis.com \
   secretmanager.googleapis.com \
   cloudscheduler.googleapis.com \
+  cloudtasks.googleapis.com \
   sheets.googleapis.com \
   run.googleapis.com \
   --project=$PROJECT_ID
@@ -277,10 +278,22 @@ PROJECT_ID=$PROJECT_ID \
 
 ## Step 11：過去データの投入
 
-`DEPLOY_HISTORICAL.md` を参照して、過去2年分の注文データを取り込みます。
+Cloud Tasks を使って過去2年分の注文データを月ごとに分割して取り込みます。
+詳細手順は `DEPLOY_HISTORICAL.md` を参照してください。
 
 ```bash
-# LTVテーブルの初期データを投入
+cd ~/rakuten-bq-pipeline
+
+# ドライランで取り込み対象を確認
+python deploy_historical_tasks.py --dry-run
+
+# タスクを登録して実行
+python deploy_historical_tasks.py
+```
+
+全タスク完了後、LTV テーブルの初期データを投入します：
+
+```bash
 PROJECT_ID=$PROJECT_ID python initialize_ltv_tables.py
 ```
 
