@@ -309,7 +309,7 @@ def main():
         
         if not args.dry_run:
             logger.info(f"\n✅ 完了: {task_count}個のタスクを作成しました")
-            logger.info(f"📊 キューの状態を確認: https://console.cloud.google.com/cloudtasks/queue/{QUEUE_NAME}?project={PROJECT_ID}")
+            logger.info(f"📊 キューの状態を確認: https://console.cloud.google.com/cloudtasks/queue/{LOCATION}/{QUEUE_NAME}?project={PROJECT_ID}")
         else:
             logger.info(f"\n✅ DRY RUN完了: {task_count}個のタスクが作成される予定です")
         
