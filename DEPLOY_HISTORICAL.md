@@ -109,7 +109,7 @@ gcloud tasks queues purge $QUEUE_NAME --location=asia-northeast1 --project=$PROJ
 | `--start-date` | 24ヶ月前 | 開始日（YYYY-MM-DD） |
 | `--end-date` | 今日 | 終了日（YYYY-MM-DD） |
 | `--dry-run` | false | タスク一覧の確認のみ（登録しない） |
-| `--max-concurrent-dispatches` | 10 | 同時実行数の上限 |
+| `--max-concurrent-dispatches` | 3 | 同時実行数の上限 |
 
 > **同時実行数について**: デフォルトの10で問題ありません。上げすぎると Rakuten API のレート制限に引っかかる可能性があります。
 

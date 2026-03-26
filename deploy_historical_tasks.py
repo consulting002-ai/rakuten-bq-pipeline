@@ -239,8 +239,8 @@ def main():
     parser.add_argument(
         "--max-concurrent-dispatches",
         type=int,
-        default=10,
-        help="同時実行数の上限（デフォルト: 10）",
+        default=3,
+        help="同時実行数の上限（デフォルト: 3）",
     )
     
     args = parser.parse_args()
