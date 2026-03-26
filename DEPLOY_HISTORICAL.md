@@ -51,6 +51,12 @@ python deploy_historical_tasks.py \
 
 タスクが登録されると Cloud Tasks キューが月ごとの処理を順次実行します。
 
+> **同時実行数を絞りたい場合**: Rakuten API のレート制限が気になる場合は `--max-concurrent-dispatches` で同時実行数を下げてください。
+>
+> ```bash
+> python deploy_historical_tasks.py --max-concurrent-dispatches 3
+> ```
+
 ---
 
 ## 進捗確認
