@@ -31,7 +31,7 @@ from dateutil.relativedelta import relativedelta
 from google.cloud import tasks_v2
 from google.api_core import exceptions
 
-from config import PROJECT_ID, BQ_LOCATION as LOCATION
+from config import PROJECT_ID as _CONFIG_PROJECT_ID, BQ_LOCATION as LOCATION
 
 # ログ設定
 logging.basicConfig(
@@ -43,6 +43,29 @@ logger = logging.getLogger(__name__)
 # スクリプト固有の設定
 QUEUE_NAME = os.getenv("QUEUE_NAME", "rakuten-historical")
 FUNCTION_URL = os.getenv("FUNCTION_URL")
+
+
+def _resolve_project_id() -> str:
+    """
+    PROJECT_ID を解決する（環境変数 → gcloud のデフォルトプロジェクト の順）
+    """
+    if _CONFIG_PROJECT_ID:
+        return _CONFIG_PROJECT_ID
+    try:
+        import subprocess
+        project_id = subprocess.check_output(
+            ["gcloud", "config", "get-value", "project"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+        if project_id and project_id != "(unset)":
+            return project_id
+    except Exception:
+        pass
+    return ""
+
+
+PROJECT_ID = _resolve_project_id()
 
 JST = ZoneInfo("Asia/Tokyo")
 
@@ -222,14 +245,16 @@ def main():
     
     args = parser.parse_args()
     
-    # 環境変数の確認
+    # PROJECT_ID の確認
     if not PROJECT_ID:
-        logger.error("❌ 環境変数 PROJECT_ID が設定されていません")
+        logger.error("❌ PROJECT_ID を解決できません。`gcloud config set project PROJECT_ID` を実行してください")
         sys.exit(1)
-    
-    if not FUNCTION_URL:
-        logger.error("❌ 環境変数 FUNCTION_URL が設定されていません")
-        sys.exit(1)
+
+    # FUNCTION_URL の解決（環境変数 → PROJECT_ID から自動生成 の順）
+    function_url = FUNCTION_URL
+    if not function_url:
+        function_url = f"https://asia-northeast1-{PROJECT_ID}.cloudfunctions.net/rakuten-etl"
+        logger.info(f"ℹ️  FUNCTION_URL が未設定のため自動生成: {function_url}")
     
     # 日付の設定
     now_jst = datetime.now(JST)
@@ -254,7 +279,7 @@ def main():
     logger.info(f"🔧 プロジェクト: {PROJECT_ID}")
     logger.info(f"📍 ロケーション: {LOCATION}")
     logger.info(f"📬 キュー名: {QUEUE_NAME}")
-    logger.info(f"🔗 関数URL: {FUNCTION_URL}")
+    logger.info(f"🔗 関数URL: {function_url}")
     if args.dry_run:
         logger.info("🔍 DRY RUN モード: タスクは作成されません")
     logger.info("")
@@ -276,7 +301,7 @@ def main():
         task_count = create_monthly_tasks(
             client=client,
             queue_path=queue_path,
-            function_url=FUNCTION_URL,
+            function_url=function_url,
             start_date=start_date,
             end_date=end_date,
             dry_run=args.dry_run,
