@@ -23,9 +23,12 @@ BQ_TABLE_LTV                 = "entry_product_ltv_by_month_offset"
 # ─── Rakuten API ──────────────────────────────────────────────────────────────
 RAKUTEN_API_BASE_URL = os.getenv("BASE_URL", "https://api.rms.rakuten.co.jp/es/2.0/order/")
 RAKUTEN_MAX_RETRIES          = 5
-RAKUTEN_PAGE_SIZE            = 100   # getOrder の1リクエスト最大件数（API仕様上限）
-RAKUTEN_SEARCH_ORDER_PAGE_SIZE = 1000  # searchOrder の1リクエスト最大件数（API仕様上限 1000）
-                                       # 100件×150ページ=15,000件上限を回避するため最大値を使用
+RAKUTEN_PAGE_SIZE            = 100   # getOrder の1リクエスト最大件数（API仕様上限 100）
+RAKUTEN_SEARCH_ORDER_PAGE_SIZE = 1000  # searchOrder の1ページ最大件数（API仕様上限 1000）
+                                       # API の総件数上限は 15,000 件/呼び出しであり、
+                                       # ページサイズを増やしても上限は変わらない。
+                                       # ページサイズ 1000 にすることで API 呼び出し回数を削減する目的。
+                                       # 15,000 件上限の回避は main.py の週単位分割ロジックで対応する。
 
 # ─── Secret Manager のシークレットID ─────────────────────────────────────────
 RAKUTEN_SERVICE_SECRET_ID = os.getenv("RAKUTEN_SERVICE_SECRET_ID", "rakuten-service-secret")

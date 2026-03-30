@@ -22,6 +22,9 @@ from storage_client import (
     complete_monthly_lock,
     release_monthly_lock,
 )
+
+SEARCH_ORDER_CHUNK_DAYS = 7  # searchOrder は 15,000 件/呼び出しのハードリミットがあるため
+                              # 週単位に分割して呼び出し、1 回あたりの件数を上限以内に抑える
 from transform import normalize_all
 from product_master_sync import sync_product_master
 from bigquery_client import (
@@ -119,6 +122,35 @@ def resolve_ranges_from_request(req):
 
 
 # =========================
+# searchOrder 週分割ラッパー
+# =========================
+def _search_order_chunked(start_jst: datetime, end_jst: datetime) -> list:
+    """
+    searchOrder の 15,000 件/呼び出しハードリミットを回避するため、
+    期間を SEARCH_ORDER_CHUNK_DAYS 日単位に分割して呼び出し、結果を結合して返す。
+    重複排除は順序を保って行う。
+    """
+    all_orders = []
+    seen: set = set()
+    chunk_start = start_jst
+
+    while chunk_start < end_jst:
+        chunk_end = min(chunk_start + timedelta(days=SEARCH_ORDER_CHUNK_DAYS), end_jst)
+        chunk_orders = search_order(iso_jst(chunk_start), iso_jst(chunk_end))
+        for o in chunk_orders:
+            if o not in seen:
+                seen.add(o)
+                all_orders.append(o)
+        logging.info(
+            f"  chunk {iso_jst(chunk_start)}〜{iso_jst(chunk_end)}: "
+            f"{len(chunk_orders)} 件 (累計 {len(all_orders)} 件)"
+        )
+        chunk_start = chunk_end
+
+    return all_orders
+
+
+# =========================
 # コア処理（1か月分）
 # =========================
 def process_one_month(m_start_jst: datetime, m_end_jst: datetime) -> dict:
@@ -136,8 +168,9 @@ def process_one_month(m_start_jst: datetime, m_end_jst: datetime) -> dict:
 
     logging.info(f"=== Month range (JST): {start_iso} 〜 {end_iso} ===")
 
-    # 1) 注文番号一覧を取得（searchOrder）
-    order_numbers = search_order(start_iso, end_iso)
+    # 1) 注文番号一覧を取得（searchOrder・週分割）
+    # searchOrder は 15,000 件/呼び出しのハードリミットがあるため週単位で分割して呼ぶ
+    order_numbers = _search_order_chunked(m_start_jst, m_end_jst)
     total_numbers = len(order_numbers)
     if total_numbers == 0:
         logging.error(
@@ -269,8 +302,8 @@ def main_endpoint(request):
             year_month = m_start.strftime("%Y-%m")
 
             if dry_run:
-                # 取得件数だけ見たい場合（searchOrder呼んで終了）
-                order_numbers = search_order(start_iso, end_iso)
+                # 取得件数だけ見たい場合（週分割 searchOrder 呼んで終了）
+                order_numbers = _search_order_chunked(m_start, m_end)
                 summary["details"].append(
                     {
                         "range": [start_iso, end_iso],
