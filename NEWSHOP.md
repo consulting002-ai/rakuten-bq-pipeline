@@ -347,6 +347,73 @@ curl "$FUNCTION_URL?mode=MONTHLY"
 
 ---
 
+## Appendix：月次処理のアーキテクチャ移行パス
+
+> **現状構成の制約と、問題が出た場合の対応策をまとめたメモ。**
+
+### 現状構成
+
+```
+Cloud Scheduler (月1回) → HTTP GET → rakuten-etl (Cloud Functions Gen2, 最大60分)
+```
+
+| 設定 | 値 | 理由 |
+|------|---|------|
+| `--timeout` | `3600s` | 注文件数が多い月でも完走できるよう最大値 |
+| `--max-retries` | `0` | 504 後の再実行・並列実行を防ぐ |
+| `--attempt-deadline` | `30m` | Scheduler 側の最大接続待機 |
+
+**GCS 実行ロック**（`locks/monthly-YYYY-MM.lock`）がコードに組み込み済み。  
+同一月に対して 2 本目の実行が来ても自動でスキップされる。
+
+### 問題が出るとすればどんな場合？
+
+- 注文件数がさらに増え、1ヶ月分の処理が **60分を超える**ようになった場合
+- Scheduler の 504 → ロック未取得前に並列起動した場合（起動直後の競合）
+- Cloud Functions の **コールドスタート + メモリ不足** でのクラッシュが頻発する場合
+
+### 次のアーキテクチャ案：Cloud Run Jobs
+
+Cloud Functions の HTTP タイムアウト制約を根本から取り除く方法。
+
+```
+Cloud Scheduler (月1回) → Cloud Run Jobs (コンテナ, 最大24時間)
+```
+
+**移行に必要な主な作業：**
+
+1. `Dockerfile` の作成（既存の Python コードをそのまま使える）
+2. `main.py` の `main_endpoint()` をスクリプトのエントリーポイントに変更（Flask 不要）
+3. Cloud Run Jobs のデプロイ設定（`gcloud run jobs create`）
+4. Cloud Scheduler のターゲットを Cloud Run Jobs 実行 API に変更
+
+```bash
+# Cloud Run Jobs の作成例（参考）
+gcloud run jobs create rakuten-monthly-job \
+  --image=asia-northeast1-docker.pkg.dev/${PROJECT_ID}/rakuten/etl:latest \
+  --region=asia-northeast1 \
+  --task-count=1 \
+  --max-retries=0 \
+  --set-env-vars="PROJECT_ID=${PROJECT_ID},..." \
+  --project=$PROJECT_ID
+
+# Scheduler から Jobs を起動する例
+gcloud scheduler jobs create http rakuten-monthly-job-trigger \
+  --location=asia-northeast1 \
+  --schedule="0 2 1 * *" \
+  --uri="https://run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/rakuten-monthly-job:run" \
+  --http-method=POST \
+  --oauth-service-account-email="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --time-zone="Asia/Tokyo" \
+  --max-retries=0 \
+  --project=$PROJECT_ID
+```
+
+> Cloud Run Jobs は実行完了が HTTP 応答ではなくジョブ終了で判定されるため、  
+> タイムアウト問題・状態不明問題・並列実行問題がすべて解消される。
+
+---
+
 ## 設定値メモ（ショップごとに記入）
 
 | 項目 | 値 |

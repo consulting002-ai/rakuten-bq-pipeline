@@ -16,7 +16,12 @@ from config import (
 )
 from utils import setup_cloud_logging
 from rakuten_client import search_order, get_order, PAGE_SIZE
-from storage_client import upload_raw_json
+from storage_client import (
+    upload_raw_json,
+    acquire_monthly_lock,
+    complete_monthly_lock,
+    release_monthly_lock,
+)
 from transform import normalize_all
 from product_master_sync import sync_product_master
 from bigquery_client import (
@@ -261,6 +266,7 @@ def main_endpoint(request):
         for m_start, m_end in ranges:
             start_iso = iso_jst(m_start)
             end_iso = iso_jst(m_end)
+            year_month = m_start.strftime("%Y-%m")
 
             if dry_run:
                 # 取得件数だけ見たい場合（searchOrder呼んで終了）
@@ -276,8 +282,28 @@ def main_endpoint(request):
                 )
                 continue
 
+            # MONTHLY モードのみ GCS ロックで重複実行を防ぐ
+            # CUSTOM / HISTORICAL は手動実行なのでロック不要
+            if mode == "MONTHLY":
+                if not acquire_monthly_lock(year_month):
+                    summary["details"].append(
+                        {
+                            "range": [start_iso, end_iso],
+                            "note": "skipped_already_locked",
+                        }
+                    )
+                    continue
+
             # 本処理
-            detail = process_one_month(m_start, m_end)
+            try:
+                detail = process_one_month(m_start, m_end)
+                if mode == "MONTHLY":
+                    complete_monthly_lock(year_month)
+            except Exception as month_err:
+                if mode == "MONTHLY":
+                    # ロックを解放して手動リトライを可能にする
+                    release_monthly_lock(year_month)
+                raise month_err
             summary["details"].append(detail)
 
         return jsonify({"status": "success", **summary})
