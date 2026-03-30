@@ -209,7 +209,7 @@ gcloud functions deploy rakuten-etl \
   --trigger-http \
   --allow-unauthenticated \
   --memory=2GiB \
-  --timeout=540s \
+  --timeout=3600s \
   --set-env-vars="PROJECT_ID=${PROJECT_ID},BUCKET_NAME=${BUCKET_NAME},BQ_DATASET=rakuten_orders,BQ_LOCATION=asia-northeast1,SKIP_LTV_UPDATE=false,PRODUCT_MASTER_SHEET_ID={SPREADSHEET_ID},PRODUCT_MASTER_SHEET_RANGE=ASIN_List!B:E" \
   --project=$PROJECT_ID
 ```
@@ -304,22 +304,23 @@ PROJECT_ID=$PROJECT_ID python initialize_ltv_tables.py
 ## Step 12：Cloud Schedulerの設定（月次自動実行）
 
 ```bash
-# 関数のURLを確認
-gcloud functions describe rakuten-etl \
-  --region=asia-northeast1 \
-  --gen2 \
-  --format="value(serviceConfig.uri)" \
-  --project=$PROJECT_ID
+FUNCTION_URL="https://asia-northeast1-${PROJECT_ID}.cloudfunctions.net/rakuten-etl"
 
 # 毎月1日 午前2時（JST）に自動実行
+# --max-retries=0: リトライなし（並列実行・リトライ地獄を防ぐ）
+# --attempt-deadline=30m: 接続待機を最大限延ばす
 gcloud scheduler jobs create http rakuten-monthly-etl \
   --location=asia-northeast1 \
   --schedule="0 2 1 * *" \
-  --uri="{FUNCTION_URL}?mode=MONTHLY" \
+  --uri="${FUNCTION_URL}?mode=MONTHLY" \
   --http-method=GET \
   --time-zone="Asia/Tokyo" \
+  --max-retries=0 \
+  --attempt-deadline=30m \
   --project=$PROJECT_ID
 ```
+
+> **タイムアウトについて**: 注文件数が多い月は処理が 30 分を超え Cloud Scheduler に 504 が返ることがありますが、Cloud Function 自体は最大 60 分（3600 秒）動き続けて処理を完走します。`--max-retries=0` により再実行は起きません。
 
 ---
 
