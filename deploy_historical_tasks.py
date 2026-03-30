@@ -242,7 +242,12 @@ def main():
         default=3,
         help="同時実行数の上限（デフォルト: 3）",
     )
-    
+    parser.add_argument(
+        "--purge-queue",
+        action="store_true",
+        help="タスク追加の前にキュー内の未処理タスクをすべて削除する",
+    )
+
     args = parser.parse_args()
     
     # PROJECT_ID の確認
@@ -296,7 +301,13 @@ def main():
             queue_name=QUEUE_NAME,
             max_concurrent_dispatches=args.max_concurrent_dispatches,
         )
-        
+
+        # --purge-queue: 未処理タスクを全削除してからタスクを再投入する
+        if args.purge_queue and not args.dry_run:
+            logger.info(f"🗑️  キューをパージします: {QUEUE_NAME}")
+            client.purge_queue(request={"name": queue_path})
+            logger.info("✅ パージ完了")
+
         # タスクの作成
         task_count = create_monthly_tasks(
             client=client,

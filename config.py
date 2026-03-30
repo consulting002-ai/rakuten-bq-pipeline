@@ -22,8 +22,10 @@ BQ_TABLE_LTV                 = "entry_product_ltv_by_month_offset"
 
 # ─── Rakuten API ──────────────────────────────────────────────────────────────
 RAKUTEN_API_BASE_URL = os.getenv("BASE_URL", "https://api.rms.rakuten.co.jp/es/2.0/order/")
-RAKUTEN_MAX_RETRIES  = 5
-RAKUTEN_PAGE_SIZE    = 100  # searchOrder / getOrder の1リクエスト最大件数
+RAKUTEN_MAX_RETRIES          = 5
+RAKUTEN_PAGE_SIZE            = 100   # getOrder の1リクエスト最大件数（API仕様上限）
+RAKUTEN_SEARCH_ORDER_PAGE_SIZE = 1000  # searchOrder の1リクエスト最大件数（API仕様上限 1000）
+                                       # 100件×150ページ=15,000件上限を回避するため最大値を使用
 
 # ─── Secret Manager のシークレットID ─────────────────────────────────────────
 RAKUTEN_SERVICE_SECRET_ID = os.getenv("RAKUTEN_SERVICE_SECRET_ID", "rakuten-service-secret")

@@ -4,7 +4,12 @@ import base64
 import logging
 import requests
 
-from config import RAKUTEN_API_BASE_URL as BASE_URL, RAKUTEN_MAX_RETRIES as MAX_RETRIES, RAKUTEN_PAGE_SIZE as PAGE_SIZE
+from config import (
+    RAKUTEN_API_BASE_URL as BASE_URL,
+    RAKUTEN_MAX_RETRIES as MAX_RETRIES,
+    RAKUTEN_PAGE_SIZE as PAGE_SIZE,
+    RAKUTEN_SEARCH_ORDER_PAGE_SIZE as SEARCH_PAGE_SIZE,
+)
 from utils import get_rakuten_credentials
 
 
@@ -63,7 +68,12 @@ def call_api(endpoint, payload):
 # searchOrder
 # ------------------------------
 def search_order(start_datetime, end_datetime):
-    """???????????????"""
+    """指定期間の注文番号一覧を取得する（ページネーション対応）。
+    
+    1ページあたり最大 SEARCH_PAGE_SIZE=1000 件を使用する。
+    PAGE_SIZE=100 を使うと 100件×最大150ページ=15,000件上限に達するため、
+    ページサイズを最大値にしてこの制約を回避している。
+    """
     logging.info(f"Fetching order numbers: {start_datetime} - {end_datetime}")
     all_orders = []
     page = 1
@@ -74,7 +84,7 @@ def search_order(start_datetime, end_datetime):
             "startDatetime": start_datetime,
             "endDatetime": end_datetime,
             "PaginationRequestModel": {
-                "requestRecordsAmount": PAGE_SIZE,
+                "requestRecordsAmount": SEARCH_PAGE_SIZE,
                 "requestPage": page,
             },
         }
@@ -84,7 +94,7 @@ def search_order(start_datetime, end_datetime):
 
         order_list = data.get("orderNumberList", []) or []
         all_orders.extend(order_list)
-        logging.info(f"Page {page}: {len(order_list)} orders fetched")
+        logging.info(f"Page {page}: {len(order_list)} orders fetched (累計: {len(all_orders)})")
 
         pagination = data.get("PaginationResponseModel") or {}
         current_page = pagination.get("requestPage") or page
@@ -96,7 +106,7 @@ def search_order(start_datetime, end_datetime):
             page = current_page + 1
             continue
 
-        if len(order_list) < PAGE_SIZE:
+        if len(order_list) < SEARCH_PAGE_SIZE:
             break
         page += 1
 
