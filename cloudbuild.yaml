@@ -21,11 +21,11 @@ steps:
       - --trigger-http
       - --allow-unauthenticated
       - --memory=2GiB
-      - --timeout=540s
+      - --timeout=3600s
       - --project=$PROJECT_ID
       # --set-env-vars は指定しない（既存の環境変数を保持するため）
 
-  # 管理機能（licenseKey 更新。IAP で Google 認証必須）
+  # 管理機能（ライセンスキー更新ページ。現在のライセンスキー認証で公開）
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -38,7 +38,7 @@ steps:
       - --source=.
       - --entry-point=admin
       - --trigger-http
-      - --no-allow-unauthenticated
+      - --allow-unauthenticated
       - --memory=256Mi
       - --timeout=60s
       - --project=$PROJECT_ID
