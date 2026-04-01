@@ -113,22 +113,18 @@ gcloud iam service-accounts add-iam-policy-binding \
   --member="serviceAccount:${SA}" \
   --role="roles/iam.serviceAccountUser"
 
-# ビルドログ書き込み
+# ビルドログ書き込み（cloudbuild.yaml に logging: CLOUD_LOGGING_ONLY を設定済みのため必要）
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:${SA}" \
   --role="roles/logging.logWriter"
 
-# ビルドソース GCS アップロード
+# ビルドソース GCS アップロード（ソースコードのアップロードに使用）
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:${SA}" \
   --role="roles/storage.objectAdmin"
-
-# Cloud Build が自動生成したログバケットへのアクセス権
-# （REGIONAL_USER_OWNED_BUCKET 使用時に必要。バケット名は {PROJECT_NUMBER}-{REGION}-cloudbuild-logs）
-gsutil iam ch \
-  "serviceAccount:${SA}:roles/storage.admin" \
-  "gs://${PROJECT_NUMBER}-asia-northeast1-cloudbuild-logs"
 ```
+
+> **ログ出力について**: `cloudbuild.yaml` に `options: logging: CLOUD_LOGGING_ONLY` を設定しているため、ビルドログは Cloud Logging にのみ出力されます。GCS ログバケットへの権限付与は不要です。専用 SA でデフォルトの GCS ログバケットを使おうとすると権限エラーになるため、この設定が必要です。
 
 ### 4-2. トリガーの作成
 
