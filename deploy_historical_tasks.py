@@ -172,12 +172,15 @@ def create_monthly_tasks(
         url = f"{function_url}?mode=CUSTOM&start={month_start_str}&end={month_end_str}"
         
         # タスクの作成
+        # dispatch_deadline: Cloud Tasks が HTTP レスポンスを待つ最大時間（最大 30 分）
+        # 1 ヶ月分の getOrder は最大 ~150 回 API 呼び出しになるため余裕を持って 30 分に設定
         task = tasks_v2.Task(
             http_request=tasks_v2.HttpRequest(
                 http_method=tasks_v2.HttpMethod.GET,
                 url=url,
                 headers={"Content-Type": "application/json"},
             ),
+            dispatch_deadline={"seconds": 1800},  # 30 分
         )
         
         tasks_info.append({
