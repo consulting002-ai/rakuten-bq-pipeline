@@ -46,7 +46,7 @@ steps:
 
 options:
   # 専用 SA 使用時はログ保存先の明示が必須。
-  # REGIONAL_USER_OWNED_BUCKET: Cloud Build が管理するリージョンバケットに保存（追加設定不要）
-  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
+  # CLOUD_LOGGING_ONLY: GCS バケット不要、Cloud Logging にのみ出力する
+  logging: CLOUD_LOGGING_ONLY
 
 timeout: 600s
