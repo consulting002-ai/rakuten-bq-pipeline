@@ -44,4 +44,9 @@ steps:
       - --project=$PROJECT_ID
       # --set-env-vars は指定しない（既存の環境変数を保持するため）
 
+options:
+  # 専用 SA 使用時はログ保存先の明示が必須。
+  # REGIONAL_USER_OWNED_BUCKET: Cloud Build が管理するリージョンバケットに保存（追加設定不要）
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
+
 timeout: 600s
