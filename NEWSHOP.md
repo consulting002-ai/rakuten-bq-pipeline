@@ -83,33 +83,81 @@ pip install -r requirements.txt
 
 ## Step 4：Cloud Build Triggerの設定（GitHub連携・自動デプロイ）
 
+### 4-1. 専用サービスアカウントの作成
+
+Compute Engine デフォルト SA ではなく専用 SA を使うのが推奨です。
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+
+# 専用 SA を作成
+gcloud iam service-accounts create cloudbuild-trigger-deployer \
+  --display-name="Cloud Build Trigger Deployer" \
+  --project=$PROJECT_ID
+
+SA="cloudbuild-trigger-deployer@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# Cloud Functions デプロイ権限
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SA}" \
+  --role="roles/cloudfunctions.developer"
+
+# Cloud Run 操作（Gen2 は Cloud Run ベース）
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SA}" \
+  --role="roles/run.admin"
+
+# ランタイム SA への権限委任
+gcloud iam service-accounts add-iam-policy-binding \
+  "${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --member="serviceAccount:${SA}" \
+  --role="roles/iam.serviceAccountUser"
+
+# ビルドログ書き込み
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SA}" \
+  --role="roles/logging.logWriter"
+
+# ビルドソース GCS アップロード
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SA}" \
+  --role="roles/storage.objectAdmin"
+```
+
+### 4-2. トリガーの作成
+
 GCP Console → Cloud Build → トリガー → 「トリガーを作成」
 
 | 設定項目 | 値 |
 |---------|---|
-| ソース | GitHub（第2世代）|
+| 名前 | `Cloud Build Trigger Deployer`（任意） |
+| リージョン | `asia-northeast1`（第2世代リポジトリに必要） |
+| イベント | ブランチへの push |
+| ソース | GitHub（第2世代） |
 | リポジトリ | `rakuten-bq-pipeline`（共通）またはフォーク先リポジトリ |
 | ブランチ | `^main$` |
-| 構成ファイル | `cloudbuild.yaml` |
+| 構成ファイルの種類 | Cloud Build 構成ファイル |
+| Cloud Build 構成ファイルの場所 | `/cloudbuild.yaml` |
+| サービスアカウント | `cloudbuild-trigger-deployer@{PROJECT_ID}.iam.gserviceaccount.com` |
 
-Cloud Build のサービスアカウントに以下の権限を付与します：
+### 4-3. 動作確認
 
 ```bash
-# Cloud Build のサービスアカウントを確認
-gcloud projects get-iam-policy $PROJECT_ID \
-  --flatten="bindings[].members" \
-  --filter="bindings.role=roles/cloudbuild.builds.builder" \
-  --format="value(bindings.members)"
+# 手動実行でテスト
+gcloud builds triggers run "Cloud Build Trigger Deployer" \
+  --branch=main \
+  --project=$PROJECT_ID \
+  --region=asia-northeast1
 
-# 権限を付与（SA_EMAIL は上記コマンドで確認したアドレス）
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:{SA_EMAIL}" \
-  --role="roles/cloudfunctions.developer"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:{SA_EMAIL}" \
-  --role="roles/iam.serviceAccountUser"
+# ビルド結果確認
+gcloud builds list \
+  --project=$PROJECT_ID \
+  --region=asia-northeast1 \
+  --limit=3 \
+  --format="table(id,status,createTime,duration)"
 ```
+
+以降は `main` への push で自動デプロイされます。手動の `gcloud functions deploy` は不要です。
 
 ---
 
