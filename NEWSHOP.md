@@ -91,11 +91,11 @@ Compute Engine デフォルト SA ではなく専用 SA を使うのが推奨で
 PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
 
 # 専用 SA を作成
-gcloud iam service-accounts create cloudbuild-trigger-deployer \
+gcloud iam service-accounts create cloud-build-trigger-deployer \
   --display-name="Cloud Build Trigger Deployer" \
   --project=$PROJECT_ID
 
-SA="cloudbuild-trigger-deployer@${PROJECT_ID}.iam.gserviceaccount.com"
+SA="cloud-build-trigger-deployer@${PROJECT_ID}.iam.gserviceaccount.com"
 
 # Cloud Functions デプロイ権限
 gcloud projects add-iam-policy-binding $PROJECT_ID \
@@ -122,6 +122,12 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:${SA}" \
   --role="roles/storage.objectAdmin"
+
+# Cloud Build が自動生成したログバケットへのアクセス権
+# （REGIONAL_USER_OWNED_BUCKET 使用時に必要。バケット名は {PROJECT_NUMBER}-{REGION}-cloudbuild-logs）
+gsutil iam ch \
+  "serviceAccount:${SA}:roles/storage.admin" \
+  "gs://${PROJECT_NUMBER}-asia-northeast1-cloudbuild-logs"
 ```
 
 ### 4-2. トリガーの作成
@@ -130,7 +136,7 @@ GCP Console → Cloud Build → トリガー → 「トリガーを作成」
 
 | 設定項目 | 値 |
 |---------|---|
-| 名前 | `Cloud Build Trigger Deployer`（任意） |
+| 名前 | `rakuten-etl-deploy`（任意） |
 | リージョン | `asia-northeast1`（第2世代リポジトリに必要） |
 | イベント | ブランチへの push |
 | ソース | GitHub（第2世代） |
@@ -138,13 +144,13 @@ GCP Console → Cloud Build → トリガー → 「トリガーを作成」
 | ブランチ | `^main$` |
 | 構成ファイルの種類 | Cloud Build 構成ファイル |
 | Cloud Build 構成ファイルの場所 | `/cloudbuild.yaml` |
-| サービスアカウント | `cloudbuild-trigger-deployer@{PROJECT_ID}.iam.gserviceaccount.com` |
+| サービスアカウント | `cloud-build-trigger-deployer@{PROJECT_ID}.iam.gserviceaccount.com` |
 
 ### 4-3. 動作確認
 
 ```bash
 # 手動実行でテスト
-gcloud builds triggers run "Cloud Build Trigger Deployer" \
+gcloud builds triggers run "rakuten-etl-deploy" \
   --branch=main \
   --project=$PROJECT_ID \
   --region=asia-northeast1
