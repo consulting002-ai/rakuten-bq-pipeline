@@ -45,6 +45,33 @@ def get_secret(secret_id: str, project_id: Optional[str] = None, version: str = 
         raise
 
 
+def get_secret_label(secret_id: str, label_key: str, project_id: Optional[str] = None) -> Optional[str]:
+    """
+    Secret Manager のシークレットのラベルから値を取得する
+
+    Args:
+        secret_id: シークレットID（例: "rakuten-license-key"）
+        label_key: ラベルのキー（例: "expiry-date"）
+        project_id: GCPプロジェクトID（未指定の場合は環境変数から取得）
+
+    Returns:
+        str | None: ラベルの値。ラベルが存在しない場合は None
+    """
+    if not project_id:
+        project_id = _CONFIG_PROJECT_ID
+        if not project_id:
+            raise ValueError("PROJECT_IDが解決できません（環境変数またはADCが必要）。")
+
+    try:
+        client = secretmanager.SecretManagerServiceClient()
+        name = f"projects/{project_id}/secrets/{secret_id}"
+        secret = client.get_secret(request={"name": name})
+        return secret.labels.get(label_key)
+    except Exception as e:
+        logging.error(f"Secret Managerから {secret_id} のラベル '{label_key}' 取得に失敗しました: {e}")
+        raise
+
+
 def get_rakuten_credentials(project_id: Optional[str] = None) -> tuple[str, str]:
     """
     Rakuten APIの認証情報をSecret Managerから取得する

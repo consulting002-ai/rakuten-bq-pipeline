@@ -55,6 +55,18 @@ def call_api(endpoint, payload):
                     f"Retry {attempt+1}/{MAX_RETRIES} after {wait}s (status={resp.status_code})"
                 )
                 time.sleep(wait)
+            elif resp.status_code == 401:
+                # GA0001: Un-Authorised（ライセンスキー期限切れ・認証情報不正）
+                raise RuntimeError(
+                    f"Rakuten API 認証失敗 (HTTP 401 GA0001): ライセンスキーを確認してください。"
+                    f" レスポンス: {resp.text}"
+                )
+            elif resp.status_code == 400:
+                # GK0001/GK0005/GK0006: 認証情報の構造的問題、またはリクエストパラメータ不正
+                raise RuntimeError(
+                    f"Rakuten API リクエストエラー (HTTP 400): 認証情報またはリクエスト内容を確認してください。"
+                    f" レスポンス: {resp.text}"
+                )
             else:
                 logging.error(f"API Error {resp.status_code}: {resp.text}")
                 break

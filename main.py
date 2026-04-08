@@ -13,8 +13,11 @@ from config import (
     BQ_TABLE_ORDER_ITEMS,
     STRICT_RAW_PER_BATCH,
     SKIP_LTV_UPDATE,
+    RAKUTEN_LICENSE_KEY_ID,
+    SHOP_NAME,
 )
-from utils import setup_cloud_logging
+from utils import setup_cloud_logging, get_secret_label
+from admin import notify_chatwork
 from rakuten_client import search_order, get_order, PAGE_SIZE
 from storage_client import (
     upload_raw_json,
@@ -267,6 +270,82 @@ def process_one_month(m_start_jst: datetime, m_end_jst: datetime) -> dict:
 
 
 # =========================
+# 月次通知ヘルパー
+# =========================
+def _check_license_expiry(now_jst: datetime) -> None:
+    """
+    ライセンスキーの有効期限を確認し、今月中に期限切れになる場合は Chatwork に警告通知する。
+
+    通知条件: current_1st <= expiry_date < next_1st
+    ラベルが未設定の場合は警告ログのみ出力する（ETL は続行）。
+    """
+    try:
+        expiry_str = get_secret_label(RAKUTEN_LICENSE_KEY_ID, "expiry-date")
+    except Exception as e:
+        logging.warning(f"有効期限ラベルの取得に失敗しました（ETLは続行）: {e}")
+        return
+
+    if not expiry_str:
+        logging.warning(
+            "ライセンスキーの有効期限ラベル (expiry-date) が未設定です。"
+            " /update-license-key ページから有効期限を登録してください。"
+        )
+        return
+
+    try:
+        expiry_dt = datetime.strptime(expiry_str, "%Y-%m-%d").replace(tzinfo=JST)
+    except ValueError:
+        logging.warning(f"有効期限ラベルの形式が不正です（期待値: YYYY-MM-DD, 実際: {expiry_str!r}）")
+        return
+
+    cur_1st = month_start(now_jst)
+    nxt_1st = next_month(now_jst)
+
+    if cur_1st <= expiry_dt < nxt_1st:
+        expiry_display = expiry_str.replace("-", "/")
+        notify_chatwork(
+            title=f"⚠️ ライセンスキー有効期限（{SHOP_NAME}）",
+            body=(
+                f"ショップ: {SHOP_NAME}\n"
+                f"有効期限: {expiry_display}\n"
+                f"今月（{cur_1st.strftime('%Y/%m')}）中に期限が切れます。\n"
+                f"ライセンスキーの更新をお願いします。"
+            ),
+        )
+        logging.warning(f"ライセンスキーの有効期限が今月中です: {expiry_display}")
+
+
+def _notify_etl_complete(summary: dict) -> None:
+    """月次 ETL 完了を Chatwork に通知する"""
+    details = summary.get("details", [])
+    total_orders = sum(d.get("order_numbers", 0) for d in details if isinstance(d, dict))
+    month_str = details[0]["range"][0][:7] if details else "不明"
+    now_str = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
+    notify_chatwork(
+        title=f"✅ 月次 ETL 完了（{SHOP_NAME}）",
+        body=(
+            f"ショップ: {SHOP_NAME}\n"
+            f"処理月: {month_str}\n"
+            f"受注件数: {total_orders}件\n"
+            f"完了日時: {now_str} JST"
+        ),
+    )
+
+
+def _notify_etl_failure(error_msg: str) -> None:
+    """月次 ETL 失敗を Chatwork に通知する"""
+    now_str = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
+    notify_chatwork(
+        title=f"❌ 月次 ETL 失敗（{SHOP_NAME}）",
+        body=(
+            f"ショップ: {SHOP_NAME}\n"
+            f"エラー: {error_msg}\n"
+            f"発生日時: {now_str} JST"
+        ),
+    )
+
+
+# =========================
 # Cloud Function エントリーポイント
 # =========================
 def main_endpoint(request):
@@ -278,9 +357,11 @@ def main_endpoint(request):
       - CUSTOM の場合: ?start=YYYY-MM-DD&end=YYYY-MM-DD （JSTで解釈）
       - ?dry_run=1 で検索のみ（GCS/BQ書き込みをスキップ）
     """
+    mode = "MONTHLY"  # except ブロックで参照できるようデフォルト値を設定
     try:
         # Cloud Loggingの設定
         setup_cloud_logging()
+        now_jst = datetime.now(JST)
 
         mode, ranges = resolve_ranges_from_request(request)
         args = request.args or {}
@@ -292,6 +373,10 @@ def main_endpoint(request):
             "details": [],
             "dry_run": dry_run,
         }
+
+        # MONTHLY モード: ETL 開始前に有効期限を確認して警告通知
+        if mode == "MONTHLY" and not dry_run:
+            _check_license_expiry(now_jst)
 
         if not dry_run:
             summary["master_sync"] = sync_product_master()
@@ -339,10 +424,17 @@ def main_endpoint(request):
                 raise month_err
             summary["details"].append(detail)
 
+        # MONTHLY モード: 完了通知
+        if mode == "MONTHLY" and not dry_run:
+            _notify_etl_complete(summary)
+
         return jsonify({"status": "success", **summary})
 
     except Exception as e:
         logging.exception("ETL failed")
+        # MONTHLY モード: 失敗通知
+        if mode == "MONTHLY":
+            _notify_etl_failure(str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
