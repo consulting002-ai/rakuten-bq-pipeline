@@ -356,12 +356,12 @@ PROJECT_ID=$PROJECT_ID python initialize_ltv_tables.py
 ```bash
 FUNCTION_URL="https://asia-northeast1-${PROJECT_ID}.cloudfunctions.net/rakuten-etl"
 
-# 毎月1日 午前2時（JST）に自動実行
+# 毎月1日 午前9時（JST）に自動実行
 # --max-retries=0: リトライなし（並列実行・リトライ地獄を防ぐ）
 # --attempt-deadline=30m: 接続待機を最大限延ばす
 gcloud scheduler jobs create http rakuten-monthly-etl \
   --location=asia-northeast1 \
-  --schedule="0 2 1 * *" \
+  --schedule="0 9 1 * *" \
   --uri="${FUNCTION_URL}?mode=MONTHLY" \
   --http-method=GET \
   --time-zone="Asia/Tokyo" \
@@ -450,7 +450,7 @@ gcloud run jobs create rakuten-monthly-job \
 # Scheduler から Jobs を起動する例
 gcloud scheduler jobs create http rakuten-monthly-job-trigger \
   --location=asia-northeast1 \
-  --schedule="0 2 1 * *" \
+  --schedule="0 9 1 * *" \
   --uri="https://run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/rakuten-monthly-job:run" \
   --http-method=POST \
   --oauth-service-account-email="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
